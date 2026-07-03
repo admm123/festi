@@ -40,12 +40,12 @@ async function main() {
   const userPassword = await hashPassword("user1234");
 
   const user = await prisma.user.upsert({
-    where: { email: "raver@festi.com" },
+    where: { email: "rider@festi.com" },
     update: {},
     create: {
       id: crypto.randomUUID(),
-      name: "DJ Raver",
-      email: "raver@festi.com",
+      name: "Alex Rider",
+      email: "rider@festi.com",
       emailVerified: true,
       role: "user",
       banned: false,
@@ -64,7 +64,7 @@ async function main() {
 
   console.log("\n📋 Test credentials:");
   console.log("Admin: admin@festi.com / admin123");
-  console.log("User:  raver@festi.com / user1234");
+  console.log("User:  rider@festi.com / user1234");
 
   await prisma.$disconnect();
 }

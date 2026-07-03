@@ -53,14 +53,14 @@ export function getVerificationEmailHtml(url: string, userName: string) {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #ffffff; margin: 0; padding: 40px 20px;">
         <div style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #1a0505 0%, #0a0a0a 100%); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 40px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <div style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-radius: 12px; line-height: 48px; font-size: 24px;">⚡</div>
+            <div style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-radius: 12px; line-height: 48px; font-size: 24px;">🚴</div>
             <h1 style="margin: 16px 0 0; font-size: 24px; font-weight: bold;">FESTI</h1>
           </div>
           
           <h2 style="margin: 0 0 16px; font-size: 20px; text-align: center;">Verify your email address</h2>
           
           <p style="color: #a1a1aa; margin: 0 0 24px; text-align: center;">
-            Hey ${userName}, welcome to the hardstyle community! Click the button below to verify your email and start planning your next festival adventure.
+            Hey ${userName}, welcome to the cycling community! Click the button below to verify your email and start planning your next ride.
           </p>
           
           <div style="text-align: center; margin: 32px 0;">
@@ -95,7 +95,7 @@ export function getPasswordResetEmailHtml(url: string, userName: string) {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #ffffff; margin: 0; padding: 40px 20px;">
         <div style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #1a0505 0%, #0a0a0a 100%); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 40px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <div style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-radius: 12px; line-height: 48px; font-size: 24px;">⚡</div>
+            <div style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-radius: 12px; line-height: 48px; font-size: 24px;">🚴</div>
             <h1 style="margin: 16px 0 0; font-size: 24px; font-weight: bold;">FESTI</h1>
           </div>
           

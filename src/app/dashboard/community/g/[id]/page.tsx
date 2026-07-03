@@ -1,0 +1,191 @@
+import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import {
+  TrashIcon,
+  UsersIcon,
+  MessageCircleIcon,
+  ClockIcon,
+} from "lucide-react";
+
+import { auth } from "@/lib/auth";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+
+import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { EditGroupDialog } from "@/features/community/components/edit-group-dialog";
+import { DeleteGroupDialog } from "@/features/community/components/delete-group-dialog";
+import { KickMemberButton } from "@/features/community/components/kicke-member-button";
+
+const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: dbAdapter });
+
+export default async function GroupPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const group = await prisma.group.findUnique({
+    where: { id },
+    include: {
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+        },
+      },
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              image: true,
+              role: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!group) {
+    notFound();
+  }
+
+  const isOwner = session?.user.id === group.createdById;
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="size-20">
+            <AvatarImage src={group.image ?? undefined} />
+            <AvatarFallback>
+              {group.name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
+            <p className="text-muted-foreground">
+              Created by {group.createdBy.name}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {group.members.length}{" "}
+              {group.members.length === 1 ? "member" : "members"}
+            </p>
+          </div>
+        </div>
+
+        {isOwner && (
+          <div>
+            <DeleteGroupDialog groupId={group.id} groupName={group.name} />
+            <EditGroupDialog
+              groupId={group.id}
+              currentName={group.name}
+              currentDescription={group.description}
+              currentNeedApproval={group.needApproval}
+            />
+          </div>
+        )}
+      </div>
+
+      <Card className="border-red-500/20">
+        <CardHeader>
+          <CardTitle>About this group</CardTitle>
+          <CardDescription>
+            Group description and basic information
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {group.description || "No description provided."}
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-red-500/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UsersIcon className="size-5" />
+              Members
+            </CardTitle>
+            <CardDescription>Riders who are part of this group</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {group.members.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center justify-between gap-4 rounded-lg border p-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="size-10">
+                    <AvatarImage src={member.user.image ?? undefined} />
+                    <AvatarFallback>
+                      {member.user.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{member.user.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      @{member.user.username ?? "rider"}
+                    </p>
+                  </div>
+                </div>
+
+                {isOwner && member.user.id !== group.createdById ? (
+                  <KickMemberButton groupId={group.id} memberId={member.id} />
+                ) : (
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs capitalize text-muted-foreground">
+                    {member.role}
+                  </span>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="border-red-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircleIcon className="size-5" />
+                Group Chat
+              </CardTitle>
+              <CardDescription>Chat with other group members</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
+                <MessageCircleIcon className="mb-4 size-10 text-muted-foreground/50" />
+                <p className="text-muted-foreground">Group chat coming soon</p>
+                <p className="text-sm text-muted-foreground">
+                  Members will be able to chat here.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

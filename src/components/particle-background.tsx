@@ -1,90 +1,131 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
-interface FestivalNode {
-  id: number;
+interface Stop {
   name: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  connections: number[];
-  isHovered: boolean;
-  pulsePhase: number;
+  x: number; // percentage of width
+  y: number; // percentage of height
 }
 
-const FESTIVALS = [
-  "DEFQON.1",
-  "QLIMAX",
-  "THUNDERDOME",
-  "HARD BASS",
-  "REVERZE",
-  "DECIBEL",
-  "INTENTS",
-  "SUPREMACY",
-  "DOMINATOR",
-  "PAROOKAVILLE",
-  "TOMORROWLAND",
-  "EDC",
-  "MYSTERYLAND",
-  "FREAQSHOW",
-  "WOW WOW",
-  "REBIRTH",
-  "GROUND ZERO",
-  "MASTERS OF HARDCORE",
-  "AIRBEAT ONE",
-  "NATURE ONE",
+interface Route {
+  name: string;
+  color: string;
+  stops: Stop[];
+}
+
+// Per-stop animation parameters
+interface StopAnimation {
+  speedX: number;
+  speedY: number;
+  amplitudeX: number;
+  amplitudeY: number;
+  phaseX: number;
+  phaseY: number;
+}
+
+// Generate unique animation parameters for each stop
+function generateStopAnimations(routes: Route[]): StopAnimation[][] {
+  return routes.map((route, routeIndex) =>
+    route.stops.map((_, stopIndex) => ({
+      speedX: 1.2 + Math.sin(routeIndex * 2.3 + stopIndex * 1.7) * 0.5,
+      speedY: 1.0 + Math.cos(routeIndex * 1.9 + stopIndex * 2.1) * 0.45,
+      amplitudeX: 14 + Math.sin(routeIndex * 3.1 + stopIndex * 2.5) * 8,
+      amplitudeY: 12 + Math.cos(routeIndex * 2.7 + stopIndex * 1.3) * 6,
+      phaseX: (routeIndex * 1.5 + stopIndex * 2.3) % (Math.PI * 2),
+      phaseY: (routeIndex * 2.1 + stopIndex * 1.8) % (Math.PI * 2),
+    })),
+  );
+}
+
+// Define routes with famous cities as stops
+const ROUTES: Route[] = [
+  {
+    name: "Alpine Classic",
+    color: "#ef4444",
+    stops: [
+      { name: "München", x: 0.08, y: 0.22 },
+      { name: "Innsbruck", x: 0.18, y: 0.12 },
+      { name: "Zürich", x: 0.3, y: 0.08 },
+      { name: "Milano", x: 0.42, y: 0.18 },
+      { name: "Nice", x: 0.35, y: 0.32 },
+    ],
+  },
+  {
+    name: "North Sea Tour",
+    color: "#ef4444",
+    stops: [
+      { name: "Hamburg", x: 0.55, y: 0.1 },
+      { name: "Amsterdam", x: 0.68, y: 0.06 },
+      { name: "Brussels", x: 0.8, y: 0.14 },
+      { name: "London", x: 0.92, y: 0.24 },
+    ],
+  },
+  {
+    name: "Rhine Valley",
+    color: "#ef4444",
+    stops: [
+      { name: "Frankfurt", x: 0.1, y: 0.52 },
+      { name: "Köln", x: 0.22, y: 0.44 },
+      { name: "Düsseldorf", x: 0.34, y: 0.52 },
+      { name: "Stuttgart", x: 0.46, y: 0.42 },
+      { name: "Basel", x: 0.54, y: 0.35 },
+    ],
+  },
+  {
+    name: "Mediterranean",
+    color: "#ef4444",
+    stops: [
+      { name: "Barcelona", x: 0.62, y: 0.42 },
+      { name: "Marseille", x: 0.74, y: 0.48 },
+      { name: "Monaco", x: 0.84, y: 0.4 },
+      { name: "Rome", x: 0.92, y: 0.52 },
+    ],
+  },
+  {
+    name: "Eastern Express",
+    color: "#ef4444",
+    stops: [
+      { name: "Berlin", x: 0.12, y: 0.75 },
+      { name: "Dresden", x: 0.26, y: 0.82 },
+      { name: "Prague", x: 0.42, y: 0.78 },
+      { name: "Vienna", x: 0.56, y: 0.72 },
+      { name: "Budapest", x: 0.68, y: 0.65 },
+    ],
+  },
+  {
+    name: "Iberian Coast",
+    color: "#ef4444",
+    stops: [
+      { name: "Madrid", x: 0.76, y: 0.75 },
+      { name: "Lisbon", x: 0.86, y: 0.68 },
+      { name: "Porto", x: 0.94, y: 0.82 },
+    ],
+  },
 ];
+
+// Pre-generate animation params for all stops
+const STOP_ANIMATIONS = generateStopAnimations(ROUTES);
 
 export function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const nodesRef = useRef<FestivalNode[]>([]);
   const mouseRef = useRef({ x: -1000, y: -1000 });
   const animationFrameRef = useRef<number>(0);
-  const hoveredNodeRef = useRef<number | null>(null);
+  const hoveredRouteRef = useRef<number | null>(null);
+  const hoveredStopRef = useRef<{ route: number; stop: number } | null>(null);
+  const dimensionsRef = useRef({ width: 0, height: 0 });
 
-  const createNodes = useCallback((width: number, height: number) => {
-    const nodes: FestivalNode[] = [];
-    const padding = 100;
-
-    for (let i = 0; i < FESTIVALS.length; i++) {
-      // Create 5-8 random connections per node for a denser network
-      const connectionCount = Math.floor(Math.random() * 4) + 5;
-      const connections: number[] = [];
-
-      for (let j = 0; j < connectionCount; j++) {
-        let target = Math.floor(Math.random() * FESTIVALS.length);
-        let attempts = 0;
-        while (
-          (target === i || connections.includes(target)) &&
-          attempts < 50
-        ) {
-          target = Math.floor(Math.random() * FESTIVALS.length);
-          attempts++;
-        }
-        if (target !== i && !connections.includes(target)) {
-          connections.push(target);
-        }
-      }
-
-      nodes.push({
-        id: i,
-        name: FESTIVALS[i],
-        x: padding + Math.random() * (width - padding * 2),
-        y: padding + Math.random() * (height - padding * 2),
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: 12 + Math.random() * 4,
-        connections,
-        isHovered: false,
-        pulsePhase: Math.random() * Math.PI * 2,
-      });
-    }
-
-    return nodes;
-  }, []);
+  // Drag state - now per stop
+  const isDraggingRef = useRef(false);
+  const dragStopRef = useRef<{ route: number; stop: number } | null>(null);
+  // Stop offsets: [routeIndex][stopIndex] = { x, y }
+  const stopOffsetsRef = useRef<{ x: number; y: number }[][]>(
+    ROUTES.map((route) => route.stops.map(() => ({ x: 0, y: 0 }))),
+  );
+  // Stop velocities for momentum: [routeIndex][stopIndex] = { vx, vy }
+  const stopVelocitiesRef = useRef<{ vx: number; vy: number }[][]>(
+    ROUTES.map((route) => route.stops.map(() => ({ vx: 0, vy: 0 }))),
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -96,224 +137,338 @@ export function ParticleBackground() {
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      if (nodesRef.current.length === 0) {
-        nodesRef.current = createNodes(canvas.width, canvas.height);
-      }
+      dimensionsRef.current = { width: canvas.width, height: canvas.height };
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+      const newMouse = { x: e.clientX, y: e.clientY };
+
+      // Handle dragging individual stop
+      if (isDraggingRef.current && dragStopRef.current !== null) {
+        const dx = newMouse.x - mouseRef.current.x;
+        const dy = newMouse.y - mouseRef.current.y;
+        const { route, stop } = dragStopRef.current;
+        stopOffsetsRef.current[route][stop].x += dx;
+        stopOffsetsRef.current[route][stop].y += dy;
+        // Track velocity for momentum
+        stopVelocitiesRef.current[route][stop].vx = dx * 0.2;
+        stopVelocitiesRef.current[route][stop].vy = dy * 0.2;
+      }
+
+      mouseRef.current = newMouse;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches[0]) {
-        mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const newMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+        // Handle dragging individual stop
+        if (isDraggingRef.current && dragStopRef.current !== null) {
+          const dx = newMouse.x - mouseRef.current.x;
+          const dy = newMouse.y - mouseRef.current.y;
+          const { route, stop } = dragStopRef.current;
+          stopOffsetsRef.current[route][stop].x += dx;
+          stopOffsetsRef.current[route][stop].y += dy;
+          // Track velocity for momentum
+          stopVelocitiesRef.current[route][stop].vx = dx * 0.8;
+          stopVelocitiesRef.current[route][stop].vy = dy * 0.8;
+        }
+
+        mouseRef.current = newMouse;
       }
     };
 
-    const handleClick = () => {
-      // On click, give nearby nodes a push
-      const mouse = mouseRef.current;
-      const nodes = nodesRef.current;
-
-      for (const node of nodes) {
-        const dx = node.x - mouse.x;
-        const dy = node.y - mouse.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 200) {
-          const force = (200 - distance) / 200;
-          const angle = Math.atan2(dy, dx);
-          node.vx += Math.cos(angle) * force * 3;
-          node.vy += Math.sin(angle) * force * 3;
-        }
+    const handleMouseDown = () => {
+      if (hoveredStopRef.current !== null) {
+        isDraggingRef.current = true;
+        dragStopRef.current = { ...hoveredStopRef.current };
+        canvas.style.cursor = "grabbing";
       }
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      dragStopRef.current = null;
+      canvas.style.cursor = hoveredStopRef.current ? "grab" : "default";
+    };
+
+    const handleTouchStart = () => {
+      if (hoveredStopRef.current !== null) {
+        isDraggingRef.current = true;
+        dragStopRef.current = { ...hoveredStopRef.current };
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isDraggingRef.current = false;
+      dragStopRef.current = null;
     };
 
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("touchmove", handleTouchMove);
-    canvas.addEventListener("click", handleClick);
+    canvas.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchend", handleTouchEnd);
 
     const animate = () => {
       if (!ctx || !canvas) return;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const nodes = nodesRef.current;
       const mouse = mouseRef.current;
       const time = Date.now() / 1000;
+      const { width, height } = dimensionsRef.current;
 
-      // Find hovered node
-      hoveredNodeRef.current = null;
-      for (const node of nodes) {
-        const dx = mouse.x - node.x;
-        const dy = mouse.y - node.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        node.isHovered = distance < 60;
-        if (node.isHovered) {
-          hoveredNodeRef.current = node.id;
+      // Apply physics: velocity and friction for all stops
+      for (let r = 0; r < ROUTES.length; r++) {
+        for (let s = 0; s < ROUTES[r].stops.length; s++) {
+          const vel = stopVelocitiesRef.current[r][s];
+          const offset = stopOffsetsRef.current[r][s];
+
+          // Apply velocity to offset
+          offset.x += vel.vx;
+          offset.y += vel.vy;
+
+          // Apply friction (slow down)
+          vel.vx *= 0.85;
+          vel.vy *= 0.85;
+
+          // Stop if very slow
+          if (Math.abs(vel.vx) < 0.01) vel.vx = 0;
+          if (Math.abs(vel.vy) < 0.01) vel.vy = 0;
         }
       }
 
-      // Draw proximity-based connections (dynamic web effect)
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const nodeA = nodes[i];
-          const nodeB = nodes[j];
-          const dist = Math.sqrt(
-            Math.pow(nodeA.x - nodeB.x, 2) + Math.pow(nodeA.y - nodeB.y, 2),
-          );
-
-          // Draw faint connections for nearby nodes
-          if (dist < 300) {
-            const proximityOpacity = (1 - dist / 300) * 0.12;
-            ctx.beginPath();
-            ctx.moveTo(nodeA.x, nodeA.y);
-            ctx.lineTo(nodeB.x, nodeB.y);
-            ctx.strokeStyle = `rgba(120, 20, 20, ${proximityOpacity})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
+      // Update cursor based on hover state
+      if (!isDraggingRef.current) {
+        canvas.style.cursor = hoveredStopRef.current ? "grab" : "default";
       }
 
-      // Draw main connections (behind nodes)
-      for (const node of nodes) {
-        for (const targetId of node.connections) {
-          const target = nodes[targetId];
-          if (!target || node.id > targetId) continue; // Avoid drawing twice
+      // Find hovered stop (check with animated positions)
+      hoveredStopRef.current = null;
+      hoveredRouteRef.current = null;
 
-          const isActive = node.isHovered || target.isHovered;
+      for (let routeIndex = 0; routeIndex < ROUTES.length; routeIndex++) {
+        const route = ROUTES[routeIndex];
 
-          // Calculate connection opacity based on hover and distance to mouse
-          const midX = (node.x + target.x) / 2;
-          const midY = (node.y + target.y) / 2;
-          const mouseDistToLine = Math.sqrt(
-            Math.pow(mouse.x - midX, 2) + Math.pow(mouse.y - midY, 2),
-          );
+        for (let stopIndex = 0; stopIndex < route.stops.length; stopIndex++) {
+          const stop = route.stops[stopIndex];
+          const stopOffset = stopOffsetsRef.current[routeIndex][stopIndex];
+          const anim = STOP_ANIMATIONS[routeIndex][stopIndex];
 
-          let opacity = 0.15;
-          if (isActive) {
-            opacity = 0.6;
-          } else if (mouseDistToLine < 150) {
-            opacity = 0.15 + (1 - mouseDistToLine / 150) * 0.3;
+          // Per-stop floating animation
+          const floatX =
+            Math.sin(time * anim.speedX + anim.phaseX) * anim.amplitudeX;
+          const floatY =
+            Math.cos(time * anim.speedY + anim.phaseY) * anim.amplitudeY;
+
+          const x = stop.x * width + floatX + stopOffset.x;
+          const y = stop.y * height + floatY + stopOffset.y;
+
+          const dx = mouse.x - x;
+          const dy = mouse.y - y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 30) {
+            hoveredStopRef.current = { route: routeIndex, stop: stopIndex };
+            hoveredRouteRef.current = routeIndex;
+            break;
           }
+        }
+        if (hoveredRouteRef.current !== null) break;
+      }
 
-          // Animated pulse along the connection
-          const pulsePos = (time * 0.5 + node.pulsePhase) % 1;
-          const pulseX = node.x + (target.x - node.x) * pulsePos;
-          const pulseY = node.y + (target.y - node.y) * pulsePos;
+      // Draw each route
+      ROUTES.forEach((route, routeIndex) => {
+        const isHovered = hoveredRouteRef.current === routeIndex;
 
-          // Draw main connection line
+        // Each stop has its own floating animation and drag offset
+        const routeStops = route.stops.map((stop, stopIndex) => {
+          const stopOffset = stopOffsetsRef.current[routeIndex][stopIndex];
+          const anim = STOP_ANIMATIONS[routeIndex][stopIndex];
+
+          const floatX =
+            Math.sin(time * anim.speedX + anim.phaseX) * anim.amplitudeX;
+          const floatY =
+            Math.cos(time * anim.speedY + anim.phaseY) * anim.amplitudeY;
+
+          return {
+            x: stop.x * width + floatX + stopOffset.x,
+            y: stop.y * height + floatY + stopOffset.y,
+          };
+        });
+
+        // Draw route path
+        if (routeStops.length > 1) {
           ctx.beginPath();
-          ctx.moveTo(node.x, node.y);
-          ctx.lineTo(target.x, target.y);
-          ctx.strokeStyle = isActive
-            ? `rgba(239, 68, 68, ${opacity})`
-            : `rgba(180, 30, 30, ${opacity})`;
-          ctx.lineWidth = isActive ? 2 : 1;
+          ctx.moveTo(routeStops[0].x, routeStops[0].y);
+
+          for (let i = 1; i < routeStops.length; i++) {
+            ctx.lineTo(routeStops[i].x, routeStops[i].y);
+          }
+
+          ctx.strokeStyle = isHovered ? route.color : `${route.color}50`;
+          ctx.lineWidth = isHovered ? 3 : 2;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
           ctx.stroke();
 
-          // Draw energy pulse
-          if (opacity > 0.2) {
+          // Draw direction indicators (always visible, more prominent when hovered)
+          for (let i = 0; i < routeStops.length - 1; i++) {
+            const start = routeStops[i];
+            const end = routeStops[i + 1];
+
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            // Animated pulse position along segment (always running)
+            const pulseProgress = (time * 0.5 + i * 0.4 + routeIndex * 0.2) % 1;
+            const pulseX = start.x + dx * pulseProgress;
+            const pulseY = start.y + dy * pulseProgress;
+
+            // Draw animated direction dot (faint when not hovered)
+            const dotSize = isHovered
+              ? 6 + Math.sin(pulseProgress * Math.PI) * 2
+              : 3 + Math.sin(pulseProgress * Math.PI) * 1;
             ctx.beginPath();
-            ctx.arc(pulseX, pulseY, isActive ? 4 : 2, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(239, 68, 68, ${opacity * 1.5})`;
+            ctx.arc(pulseX, pulseY, dotSize, 0, Math.PI * 2);
+            ctx.fillStyle = isHovered ? route.color : `${route.color}40`;
             ctx.fill();
+
+            // Draw small arrow at dot position
+            ctx.save();
+            ctx.translate(pulseX, pulseY);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            const arrowSize = isHovered ? 8 : 5;
+            ctx.moveTo(arrowSize, 0);
+            ctx.lineTo(arrowSize - 6, -3);
+            ctx.lineTo(arrowSize - 6, 3);
+            ctx.closePath();
+            ctx.fillStyle = isHovered ? route.color : `${route.color}35`;
+            ctx.fill();
+            ctx.restore();
+
+            // Draw static direction arrows along path (only when hovered for full visibility)
+            const numArrows = Math.floor(length / 60);
+            for (let j = 1; j <= numArrows; j++) {
+              const progress = j / (numArrows + 1);
+              const arrowX = start.x + dx * progress;
+              const arrowY = start.y + dy * progress;
+
+              ctx.save();
+              ctx.translate(arrowX, arrowY);
+              ctx.rotate(angle);
+              ctx.beginPath();
+              ctx.moveTo(5, 0);
+              ctx.lineTo(-3, -4);
+              ctx.lineTo(-3, 4);
+              ctx.closePath();
+              ctx.fillStyle = isHovered
+                ? `${route.color}70`
+                : `${route.color}20`;
+              ctx.fill();
+              ctx.restore();
+            }
           }
         }
-      }
 
-      // Update and draw nodes
-      for (const node of nodes) {
-        // Mouse repulsion/attraction
-        const dx = mouse.x - node.x;
-        const dy = mouse.y - node.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Draw stops
+        route.stops.forEach((stop, stopIndex) => {
+          const stopOffset = stopOffsetsRef.current[routeIndex][stopIndex];
+          const anim = STOP_ANIMATIONS[routeIndex][stopIndex];
 
-        if (distance < 200 && distance > 0) {
-          const force = (200 - distance) / 200;
-          const angle = Math.atan2(dy, dx);
-          // Gentle repulsion from cursor
-          node.vx -= Math.cos(angle) * force * 0.05;
-          node.vy -= Math.sin(angle) * force * 0.05;
-        }
+          const floatX =
+            Math.sin(time * anim.speedX + anim.phaseX) * anim.amplitudeX;
+          const floatY =
+            Math.cos(time * anim.speedY + anim.phaseY) * anim.amplitudeY;
 
-        // Apply velocity with damping
-        node.x += node.vx;
-        node.y += node.vy;
-        node.vx *= 0.98;
-        node.vy *= 0.98;
+          const x = stop.x * width + floatX + stopOffset.x;
+          const y = stop.y * height + floatY + stopOffset.y;
+          const isStopHovered =
+            hoveredStopRef.current?.route === routeIndex &&
+            hoveredStopRef.current?.stop === stopIndex;
 
-        // Boundary bouncing
-        const margin = 80;
-        if (node.x < margin) {
-          node.x = margin;
-          node.vx *= -0.5;
-        }
-        if (node.x > canvas.width - margin) {
-          node.x = canvas.width - margin;
-          node.vx *= -0.5;
-        }
-        if (node.y < margin) {
-          node.y = margin;
-          node.vy *= -0.5;
-        }
-        if (node.y > canvas.height - margin) {
-          node.y = canvas.height - margin;
-          node.vy *= -0.5;
-        }
+          // Draw glow for hovered stop
+          if (isStopHovered) {
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, 50);
+            gradient.addColorStop(0, `${route.color}40`);
+            gradient.addColorStop(1, `${route.color}00`);
+            ctx.beginPath();
+            ctx.arc(x, y, 50, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+          }
 
-        // Draw glow for hovered nodes
-        if (node.isHovered) {
-          const gradient = ctx.createRadialGradient(
-            node.x,
-            node.y,
-            0,
-            node.x,
-            node.y,
-            80,
-          );
-          gradient.addColorStop(0, "rgba(239, 68, 68, 0.3)");
-          gradient.addColorStop(1, "rgba(239, 68, 68, 0)");
+          // Draw stop circle
+          const radius = isStopHovered ? 12 : isHovered ? 10 : 8;
+
+          // Outer ring
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 80, 0, Math.PI * 2);
-          ctx.fillStyle = gradient;
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = isHovered ? route.color : `${route.color}70`;
           ctx.fill();
+
+          // Inner circle
+          ctx.beginPath();
+          ctx.arc(x, y, radius - 3, 0, Math.PI * 2);
+          ctx.fillStyle = isStopHovered
+            ? "#ffffff"
+            : isHovered
+              ? "#1a1a1a"
+              : "#0a0a0a";
+          ctx.fill();
+
+          // Always draw stop name
+          const fontSize = isStopHovered ? 13 : isHovered ? 12 : 10;
+          ctx.font = `${isStopHovered || isHovered ? "600 " : "500 "}${fontSize}px var(--font-raleway), system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+
+          // Text shadow for readability
+          ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+          ctx.fillText(stop.name, x + 1, y + radius + 5);
+
+          ctx.fillStyle = isStopHovered
+            ? "#ffffff"
+            : isHovered
+              ? "rgba(255, 255, 255, 0.95)"
+              : "rgba(255, 255, 255, 0.6)";
+          ctx.fillText(stop.name, x, y + radius + 4);
+        });
+
+        // Draw route name label when hovered
+        if (isHovered && routeStops.length > 0) {
+          const firstStop = routeStops[0];
+          ctx.font = "bold 14px var(--font-raleway), system-ui, sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "bottom";
+
+          // Background for text
+          const textWidth = ctx.measureText(route.name).width;
+          ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+          ctx.fillRect(firstStop.x - 5, firstStop.y - 38, textWidth + 10, 22);
+
+          ctx.fillStyle = route.color;
+          ctx.fillText(route.name, firstStop.x, firstStop.y - 20);
         }
+      });
 
-        // Draw node background
-        const bgSize = node.isHovered ? node.size + 4 : node.size;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, bgSize, 0, Math.PI * 2);
-        ctx.fillStyle = node.isHovered
-          ? "rgba(239, 68, 68, 0.3)"
-          : "rgba(60, 20, 20, 0.5)";
-        ctx.fill();
-        ctx.strokeStyle = node.isHovered
-          ? "rgba(239, 68, 68, 0.8)"
-          : "rgba(239, 68, 68, 0.3)";
-        ctx.lineWidth = node.isHovered ? 2 : 1;
-        ctx.stroke();
-
-        // Draw festival name
-        ctx.font = `${node.isHovered ? "bold " : ""}${node.isHovered ? 11 : 9}px var(--font-raleway), system-ui, sans-serif`;
+      // Draw hint text
+      if (hoveredRouteRef.current === null) {
+        ctx.font = "11px var(--font-raleway), system-ui, sans-serif";
         ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = node.isHovered
-          ? "rgba(255, 255, 255, 0.95)"
-          : "rgba(255, 255, 255, 0.6)";
-        ctx.fillText(node.name, node.x, node.y);
-      }
-
-      // Draw cursor interaction hint
-      if (hoveredNodeRef.current !== null) {
-        ctx.font = "10px var(--font-raleway), system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-        ctx.fillText("click to push", mouse.x, mouse.y + 30);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fillText(
+          "Hover over routes to explore",
+          canvas.width / 2,
+          canvas.height - 30,
+        );
       }
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -325,15 +480,18 @@ export function ParticleBackground() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("touchmove", handleTouchMove);
-      canvas.removeEventListener("click", handleClick);
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
       cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [createNodes]);
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 z-0 cursor-pointer"
+      className="absolute inset-0 z-0"
       style={{ background: "transparent" }}
     />
   );

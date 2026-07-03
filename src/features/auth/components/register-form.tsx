@@ -136,7 +136,7 @@ export function RegisterForm() {
           <CardContent className="space-y-6 text-center">
             <p className="text-sm text-muted-foreground">
               Click the link in the email to verify your account and join the
-              hardstyle community. The link will expire in 24 hours.
+              cycling community. The link will expire in 24 hours.
             </p>
             <p className="text-sm text-muted-foreground">
               Already verified?{" "}
@@ -177,7 +177,7 @@ export function RegisterForm() {
             <ZapIcon className="size-6 text-white" />
           </div>
           <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>Join the hardstyle community today</CardDescription>
+          <CardDescription>Join the cycling community today</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <form
@@ -216,7 +216,7 @@ export function RegisterForm() {
               <Input
                 id="username"
                 type="text"
-                placeholder="dj_raver"
+                placeholder="speedster"
                 {...register("username")}
                 aria-invalid={!!errors.username}
               />
@@ -226,7 +226,7 @@ export function RegisterForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="raver@example.com"
+                placeholder="rider@example.com"
                 {...register("email")}
                 aria-invalid={!!errors.email}
               />

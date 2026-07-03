@@ -156,7 +156,7 @@ export function ForgotPasswordForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="raver@example.com"
+                placeholder="rider@example.com"
                 {...register("email")}
                 aria-invalid={!!errors.email}
               />

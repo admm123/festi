@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ZapIcon,
   HomeIcon,
-  CalendarIcon,
+  BikeIcon,
   UsersIcon,
   SettingsIcon,
   ShieldIcon,
@@ -35,8 +35,13 @@ interface NavItem {
 
 const contentItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: HomeIcon },
-  { label: "Festivals", href: "/dashboard/festivals", icon: CalendarIcon },
+
   { label: "Community", href: "/dashboard/community", icon: UsersIcon },
+  {
+    label: "Community Rides",
+    href: "/dashboard/community-rides",
+    icon: BikeIcon,
+  },
 ];
 
 const settingsItems: NavItem[] = [

@@ -1,0 +1,334 @@
+"use server";
+
+import { PrismaClient } from "@/generated/prisma/client";
+import { auth } from "@/lib/auth";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+
+const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: dbAdapter });
+export async function getRiders() {
+  const users = await prisma.user.findMany({
+    where: {
+      banned: false,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      email: true,
+      image: true,
+      createdAt: true,
+      role: true,
+    },
+  });
+
+  return users.map((user) => ({
+    ...user,
+    createdAt: user.createdAt.toISOString(),
+  }));
+}
+
+export async function getGroups() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const groups = await prisma.group.findMany({
+    include: {
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      members: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  return groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    image: group.image,
+    createdAt: group.createdAt.toISOString(),
+    memberCount: group.members.length,
+    createdBy: group.createdBy,
+    isOwner: group.createdById === session?.user.id,
+    isMember: group.members.some(
+      (member) => member.userId === session?.user.id,
+    ),
+  }));
+}
+
+export async function createGroup({
+  name,
+  description,
+  needApproval,
+}: {
+  name: string;
+  description: string;
+  needApproval: boolean;
+}) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("You must be signed in to create a group.");
+  }
+
+  const group = await prisma.group.create({
+    data: {
+      name: name.trim(),
+      description: description?.trim(),
+      needApproval,
+      createdById: session.user.id,
+      members: {
+        create: {
+          userId: session.user.id,
+          role: "owner",
+        },
+      },
+    },
+  });
+
+  revalidatePath("/groups");
+
+  return {
+    success: true,
+    message: `${group.name} has been created.`,
+    groupId: group.id,
+  };
+}
+
+export async function updateGroup({
+  groupId,
+  name,
+  description,
+  needApproval,
+}: {
+  groupId: string;
+  name: string;
+  description?: string;
+  needApproval: boolean;
+}) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("You must be signed in.");
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      id: true,
+      createdById: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Group not found.");
+  }
+
+  if (group.createdById !== session.user.id) {
+    throw new Error("Only the group owner can edit this group.");
+  }
+
+  const updatedGroup = await prisma.group.update({
+    where: { id: groupId },
+    data: {
+      name: name.trim(),
+      description: description?.trim(),
+      needApproval: needApproval,
+    },
+  });
+
+  revalidatePath(`/groups/${groupId}`);
+
+  return {
+    success: true,
+    message: `${updatedGroup.name} has been updated.`,
+  };
+}
+
+export async function deleteGroup(groupId: string) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("You must be signed in.");
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      id: true,
+      name: true,
+      createdById: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Group not found.");
+  }
+
+  if (group.createdById !== session.user.id) {
+    throw new Error("Only the group owner can delete this group.");
+  }
+
+  await prisma.group.delete({
+    where: { id: groupId },
+  });
+}
+
+export async function kickGroupMember({
+  groupId,
+  memberId,
+}: {
+  groupId: string;
+  memberId: string;
+}) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("You must be signed in.");
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      createdById: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Group not found.");
+  }
+
+  if (group.createdById !== session.user.id) {
+    throw new Error("Only the group owner can kick members.");
+  }
+
+  const member = await prisma.groupMember.findUnique({
+    where: { id: memberId },
+    select: {
+      userId: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!member) {
+    throw new Error("Member not found.");
+  }
+
+  if (member.userId === group.createdById) {
+    throw new Error("You cannot kick the group owner.");
+  }
+
+  await prisma.groupMember.delete({
+    where: {
+      id: memberId,
+    },
+  });
+
+  revalidatePath(`/groups/${groupId}`);
+
+  return {
+    success: true,
+    message: `${member.user.name} has been kicked from the group.`,
+  };
+}
+
+export async function joinGroup(groupId: string) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("You must be signed in.");
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      createdById: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Group not found.");
+  }
+
+  if (group.createdById === session.user.id) {
+    throw new Error("You cannot join your own group.");
+  }
+
+  await prisma.groupMember.create({
+    data: {
+      groupId,
+      userId: session.user.id,
+      role: "member",
+    },
+  });
+
+  return {
+    success: true,
+    message: "You joined the group.",
+  };
+}
+
+export async function leaveGroup(groupId: string) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("You must be signed in.");
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      createdById: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Group not found.");
+  }
+
+  if (group.createdById === session.user.id) {
+    throw new Error("Owners cannot leave their own group.");
+  }
+
+  await prisma.groupMember.delete({
+    where: {
+      userId_groupId: {
+        userId: session.user.id,
+        groupId,
+      },
+    },
+  });
+
+  return {
+    success: true,
+    message: "You left the group.",
+  };
+}

@@ -17,12 +17,12 @@ export default function HomePage() {
         <h1 className="whitespace-nowrap text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
           Plan. Connect.{" "}
           <span className="bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
-            Rave.
+            Ride.
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-          Your all-in-one platform for hardstyle festivals. Discover events,
-          connect with fellow ravers, and never miss a beat.
+          Your all-in-one platform for cyclists. Plan new rides, connect with
+          fellow riders, and explore new routes.
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Button

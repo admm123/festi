@@ -6,7 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UserCogIcon } from "lucide-react";
+import { UsersTable } from "@/features/users/components/users-table";
+
 
 export default async function UsersPage() {
   await requireAdmin();
@@ -26,13 +27,7 @@ export default async function UsersPage() {
           <CardDescription>View and manage user accounts</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <UserCogIcon className="mb-4 size-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">User management coming soon</p>
-            <p className="text-sm text-muted-foreground">
-              View, edit, and manage user accounts
-            </p>
-          </div>
+          <UsersTable />
         </CardContent>
       </Card>
     </div>

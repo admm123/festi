@@ -7,6 +7,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { QueryProvider } from "@/features/providers/query-provider";
 
 export default async function DashboardLayout({
   children,
@@ -19,7 +20,7 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <AppSidebar userRole={session.user.role || "user"} />
       <SidebarInset className="bg-background">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-red-500/20 px-4">
+        <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b border-red-500/20 bg-background px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
@@ -34,7 +35,10 @@ export default async function DashboardLayout({
             />
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">
+          {" "}
+          <QueryProvider>{children}</QueryProvider>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

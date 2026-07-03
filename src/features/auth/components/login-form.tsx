@@ -20,6 +20,9 @@ import { ArrowLeftIcon, Loader2Icon, ZapIcon } from "lucide-react";
 import { loginSchema, type LoginFormData } from "../schemas";
 import { ParticleBackground } from "@/components/particle-background";
 import { signIn, sendVerificationEmail } from "@/lib/auth-client";
+import { getBanInfo } from "../actions/get-ban-info";
+import { error } from "console";
+import { formatBanExpiry } from "../utils/formatBanExpiry";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -74,8 +77,27 @@ export function LoginForm() {
         toast.error("Please verify your email before signing in", {
           description: "Check your inbox for a verification link.",
         });
+      } else if (result.error.code === "BANNED_USER") {
+        const ban = await getBanInfo(data.email);
+
+        toast.error("Your account has been banned.", {
+          description: (
+            <div>
+              <p>
+                <strong>Reason: </strong> {ban?.reason ?? "No reason provided"}
+              </p>
+              <p>
+                <strong>Duration: </strong>
+                {formatBanExpiry(ban?.expires ?? null)}
+              </p>
+            </div>
+          ),
+        });
+
+        setIsLoading(false);
+        return;
       } else {
-        toast.error(result.error.message || "Invalid credentials");
+        toast.error(result.error.message);
       }
       setIsLoading(false);
       return;
@@ -118,7 +140,7 @@ export function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="raver@example.com"
+                placeholder="rider@example.com"
                 {...register("email")}
                 aria-invalid={!!errors.email}
               />

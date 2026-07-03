@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CalendarIcon, UsersIcon, ZapIcon, TrendingUpIcon } from "lucide-react";
+import { BikeIcon, UsersIcon, MapPinIcon, TrendingUpIcon } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -16,10 +16,10 @@ export default async function DashboardPage() {
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {session.user.name?.split(" ")[0] || "Raver"}!
+          Welcome back, {session.user.name?.split(" ")[0] || "Rider"}!
         </h1>
         <p className="text-muted-foreground">
-          Here's what's happening in the hardstyle scene
+          Here's what's happening in the cycling community
         </p>
       </div>
 
@@ -28,15 +28,13 @@ export default async function DashboardPage() {
         <Card className="border-red-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Upcoming Festivals
+              Upcoming Rides
             </CardTitle>
-            <CalendarIcon className="size-4 text-red-500" />
+            <BikeIcon className="size-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              In the next 3 months
-            </p>
+            <p className="text-xs text-muted-foreground">In the next 2 weeks</p>
           </CardContent>
         </Card>
         <Card className="border-red-500/20">
@@ -46,31 +44,31 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">48</div>
-            <p className="text-xs text-muted-foreground">Fellow ravers</p>
+            <p className="text-xs text-muted-foreground">Fellow riders</p>
           </CardContent>
         </Card>
         <Card className="border-red-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Festivals Attended
+              Rides Completed
             </CardTitle>
-            <ZapIcon className="size-4 text-red-500" />
+            <MapPinIcon className="size-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
-            <p className="text-xs text-muted-foreground">This year</p>
+            <div className="text-2xl font-bold">23</div>
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
         <Card className="border-red-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hype Level</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Distance
+            </CardTitle>
             <TrendingUpIcon className="size-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">MAX</div>
-            <p className="text-xs text-muted-foreground">
-              Always ready to rave
-            </p>
+            <div className="text-2xl font-bold">847 km</div>
+            <p className="text-xs text-muted-foreground">Keep pedaling!</p>
           </CardContent>
         </Card>
       </div>
@@ -83,10 +81,10 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <ZapIcon className="mb-4 size-12 text-muted-foreground/50" />
+            <BikeIcon className="mb-4 size-12 text-muted-foreground/50" />
             <p className="text-muted-foreground">No recent activity</p>
             <p className="text-sm text-muted-foreground">
-              Start connecting with ravers and exploring festivals!
+              Start connecting with riders and planning new routes!
             </p>
           </div>
         </CardContent>

@@ -10,9 +10,9 @@ const raleway = Raleway({
 });
 
 export const metadata: Metadata = {
-  title: "Festi - Your Hardstyle Festival Planner",
+  title: "Festi - Your Cycling Community",
   description:
-    "Plan your festival season, connect with ravers, and never miss a beat.",
+    "Plan rides, connect with cyclists, and explore new routes together.",
 };
 
 export default function RootLayout({

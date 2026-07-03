@@ -13,20 +13,23 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String        @id
   name          String
-  username      String?   @unique
+  username      String?       @unique
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean       @default(false)
   image         String?
-  role          String?   @default("user")
-  banned        Boolean?  @default(false)
+  role          String?       @default("user")
+  banned        Boolean?      @default(false)
   banReason     String?
   banExpires    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   sessions      Session[]
   accounts      Account[]
+  groups        GroupMember[]
+
+  createdGroups Group[] @relation("GroupCreator")
 
   @@unique([email])
   @@map("user")
@@ -47,6 +50,39 @@ model Session {
   @@unique([token])
   @@index([userId])
   @@map("session")
+}
+
+model Group {
+  id           String  @id @default(cuid())
+  name         String
+  description  String
+  createdById  String
+  needApproval Boolean @default(false)
+
+  image     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  members   GroupMember[]
+
+  createdBy User @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("group")
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("group_member")
 }
 
 model Account {
