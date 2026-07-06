@@ -19,16 +19,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { EditGroupDialog } from "@/features/community/components/edit-group-dialog";
 import { DeleteGroupDialog } from "@/features/community/components/delete-group-dialog";
 import { KickMemberButton } from "@/features/community/components/kicke-member-button";
 import { GroupJoinButton } from "@/features/community/components/goup-join-button";
 import { GroupChat } from "@/features/chat/components/group-chat";
-
-const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: dbAdapter });
+import { prisma } from "@/lib/prisma";
 
 export default async function GroupPage({
   params,

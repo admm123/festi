@@ -1,10 +1,6 @@
 "use server";
 
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: dbAdapter });
+import { prisma } from "@/lib/prisma";
 
 export async function checkUsernameAvailable(username: string): Promise<{
   available: boolean;

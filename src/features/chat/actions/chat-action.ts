@@ -3,13 +3,10 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { prisma } from "@/lib/prisma";
 import { MessageSchema } from "../schemas";
 import z from "zod";
 
-const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: dbAdapter });
 export async function getGroupMessages(groupId: string) {
   const session = await auth.api.getSession({
     headers: await headers(),

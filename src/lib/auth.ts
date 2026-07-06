@@ -1,16 +1,13 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin } from "better-auth/plugins";
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { prisma } from "@/lib/prisma";
+
 import {
   sendEmail,
   getVerificationEmailHtml,
   getPasswordResetEmailHtml,
 } from "./email";
-
-const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: dbAdapter });
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {

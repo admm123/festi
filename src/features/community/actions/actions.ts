@@ -1,13 +1,10 @@
 "use server";
 
-import { PrismaClient } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: dbAdapter });
 export async function getRiders() {
   const users = await prisma.user.findMany({
     where: {
