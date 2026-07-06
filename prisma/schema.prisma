@@ -28,6 +28,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   groups        GroupMember[]
+  groupMessages GroupMessage[]
 
   createdGroups Group[] @relation("GroupCreator")
 
@@ -63,6 +64,7 @@ model Group {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   members   GroupMember[]
+  messages GroupMessage[]
 
   createdBy User @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
 
@@ -115,4 +117,20 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model GroupMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_message")
 }

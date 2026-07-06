@@ -24,6 +24,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { EditGroupDialog } from "@/features/community/components/edit-group-dialog";
 import { DeleteGroupDialog } from "@/features/community/components/delete-group-dialog";
 import { KickMemberButton } from "@/features/community/components/kicke-member-button";
+import { GroupJoinButton } from "@/features/community/components/goup-join-button";
+import { GroupChat } from "@/features/chat/components/group-chat";
 
 const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: dbAdapter });
@@ -72,6 +74,23 @@ export default async function GroupPage({
 
   const isOwner = session?.user.id === group.createdById;
 
+  const isMember = group.members.some(
+    (member) => member.user.id == session?.user.id,
+  );
+
+  const groupForButton = {
+    id: group.id,
+    name: group.name,
+    image: group.image,
+    createdAt: group.createdAt.toISOString(),
+    memberCount: group.members.length,
+    isOwner,
+    isMember,
+    createdBy: {
+      id: group.createdBy.id,
+      name: group.createdBy.name,
+    },
+  };
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
@@ -92,6 +111,9 @@ export default async function GroupPage({
               {group.members.length}{" "}
               {group.members.length === 1 ? "member" : "members"}
             </p>
+            <p className="text-sm text-muted-foreground italic">
+              {group.description || "No description provided."}
+            </p>
           </div>
         </div>
 
@@ -106,86 +128,84 @@ export default async function GroupPage({
             />
           </div>
         )}
+
+        {isMember && <GroupJoinButton group={groupForButton} />}
       </div>
 
-      <Card className="border-red-500/20">
-        <CardHeader>
-          <CardTitle>About this group</CardTitle>
-          <CardDescription>
-            Group description and basic information
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {group.description || "No description provided."}
-          </p>
-        </CardContent>
-      </Card>
+      {isMember ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-red-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UsersIcon className="size-5" />
+                Members
+              </CardTitle>
+              <CardDescription>
+                Riders who are part of this group
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {group.members.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between gap-4 rounded-lg border p-3"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar className="size-10">
+                      <AvatarImage src={member.user.image ?? undefined} />
+                      <AvatarFallback>
+                        {member.user.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{member.user.name}</p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        @{member.user.username ?? "rider"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isOwner && member.user.id !== group.createdById ? (
+                    <KickMemberButton groupId={group.id} memberId={member.id} />
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs capitalize text-muted-foreground">
+                      {member.role}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <Card className="border-red-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircleIcon className="size-5" />
+                  Group Chat
+                </CardTitle>
+                <CardDescription>Chat with other group members</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GroupChat groupId={group.id} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : (
         <Card className="border-red-500/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UsersIcon className="size-5" />
-              Members
+              You are not a member of this group
             </CardTitle>
-            <CardDescription>Riders who are part of this group</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {group.members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between gap-4 rounded-lg border p-3"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar className="size-10">
-                    <AvatarImage src={member.user.image ?? undefined} />
-                    <AvatarFallback>
-                      {member.user.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{member.user.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      @{member.user.username ?? "rider"}
-                    </p>
-                  </div>
-                </div>
-
-                {isOwner && member.user.id !== group.createdById ? (
-                  <KickMemberButton groupId={group.id} memberId={member.id} />
-                ) : (
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs capitalize text-muted-foreground">
-                    {member.role}
-                  </span>
-                )}
-              </div>
-            ))}
+          <CardContent>
+            <GroupJoinButton group={groupForButton} />
           </CardContent>
         </Card>
-
-        <div className="space-y-6">
-          <Card className="border-red-500/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircleIcon className="size-5" />
-                Group Chat
-              </CardTitle>
-              <CardDescription>Chat with other group members</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
-                <MessageCircleIcon className="mb-4 size-10 text-muted-foreground/50" />
-                <p className="text-muted-foreground">Group chat coming soon</p>
-                <p className="text-sm text-muted-foreground">
-                  Members will be able to chat here.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
