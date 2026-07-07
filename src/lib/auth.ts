@@ -22,6 +22,11 @@ export const auth = betterAuth({
       },
     },
   },
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 5,
+  },
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
   trustedOrigins: ["http://localhost:3000", "http://10.160.92.25:3000"],
   emailAndPassword: {
@@ -55,6 +60,7 @@ export const auth = betterAuth({
       });
     },
     sendOnSignUp: true,
+    sendOnSignIn: true,
     autoSignInAfterVerification: true,
   },
   session: {

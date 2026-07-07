@@ -24,47 +24,25 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { sendVerificationEmail, signIn } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 import { getBanInfo } from "../actions/get-ban-info";
 import { sessionQueryKey } from "../hooks/use-session";
 import { type LoginFormData, loginSchema } from "../schemas";
 import { formatBanExpiry } from "../utils/formatBanExpiry";
 
 export function LoginForm() {
-  const [showResendButton, setShowResendButton] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const {
     register,
     handleSubmit,
-    getValues,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  const resendMutation = useMutation({
-    mutationFn: async () => {
-      const result = await sendVerificationEmail({
-        email: getValues("email"),
-      });
-      if (result.error) {
-        throw new Error(
-          result.error.message || "Failed to resend verification email",
-        );
-      }
-    },
-    onSuccess: () => {
-      toast.success("Verification email sent! Check your inbox.");
-      setShowResendButton(false);
-    },
-    onError: (error) => {
-      toast.error(error.message);
     },
   });
 
@@ -75,6 +53,7 @@ export function LoginForm() {
         password: data.password,
       });
       if (result.error) {
+        console.log(result.error);
         throw Object.assign(
           new Error(result.error.message || "Sign in failed"),
           { code: result.error.code, email: data.email },
@@ -90,9 +69,9 @@ export function LoginForm() {
       const err = error as Error & { code?: string; email?: string };
 
       if (err.code === "EMAIL_NOT_VERIFIED") {
-        setShowResendButton(true);
-        toast.error("Please verify your email before signing in", {
-          description: "Check your inbox for a verification link.",
+        toast.error("Email not verified", {
+          description:
+            "A new verification email has been sent. Please check your inbox.",
         });
         return;
       }
@@ -119,12 +98,7 @@ export function LoginForm() {
     },
   });
 
-  const handleResendVerification = () => {
-    resendMutation.mutate();
-  };
-
   const onSubmit = (data: LoginFormData) => {
-    setShowResendButton(false);
     signInMutation.mutate(data);
   };
 
@@ -189,22 +163,6 @@ export function LoginForm() {
                 <FieldError errors={[errors.password]} />
               </Field>
             </FieldGroup>
-
-            {showResendButton && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleResendVerification}
-                disabled={resendMutation.isPending}
-                className="w-full border-amber-500/50 text-amber-200 hover:bg-amber-500/20"
-              >
-                {resendMutation.isPending && (
-                  <Loader2Icon className="mr-2 size-3 animate-spin" />
-                )}
-                Resend verification email
-              </Button>
-            )}
 
             <Button
               type="submit"
