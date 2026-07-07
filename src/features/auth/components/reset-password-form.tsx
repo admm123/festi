@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  Loader2Icon,
+  ZapIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
+import { ParticleBackground } from "@/components/particle-background";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,39 +22,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  ArrowLeftIcon,
-  Loader2Icon,
-  CheckCircleIcon,
-  ZapIcon,
-} from "lucide-react";
-import { ParticleBackground } from "@/components/particle-background";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { resetPassword } from "@/lib/auth-client";
-
-const resetPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(1, "Password is required")
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(
-        /[!@#$%^&*(),.?":{}|<>]/,
-        "Password must contain at least one special character",
-      ),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+import { type ResetPasswordFormData, resetPasswordSchema } from "../schemas";
 
 export function ResetPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,27 +50,31 @@ export function ResetPasswordForm() {
     },
   });
 
-  const onSubmit = async (data: ResetPasswordFormData) => {
-    if (!token) {
-      toast.error("Invalid or missing reset token");
-      return;
-    }
+  const mutation = useMutation({
+    mutationFn: async (data: ResetPasswordFormData) => {
+      if (!token) {
+        throw new Error("Invalid or missing reset token");
+      }
 
-    setIsLoading(true);
+      const result = await resetPassword({
+        newPassword: data.password,
+        token,
+      });
 
-    const result = await resetPassword({
-      newPassword: data.password,
-      token,
-    });
+      if (result.error) {
+        throw new Error(result.error.message || "Failed to reset password");
+      }
+    },
+    onSuccess: () => {
+      setResetComplete(true);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-    if (result.error) {
-      toast.error(result.error.message || "Failed to reset password");
-      setIsLoading(false);
-      return;
-    }
-
-    setResetComplete(true);
-    setIsLoading(false);
+  const onSubmit = (data: ResetPasswordFormData) => {
+    mutation.mutate(data);
   };
 
   if (!token) {
@@ -183,33 +172,39 @@ export function ResetPasswordForm() {
             })}
             className="space-y-4"
           >
-            <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                {...register("password")}
-                aria-invalid={!!errors.password}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm new password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                {...register("confirmPassword")}
-                aria-invalid={!!errors.confirmPassword}
-              />
-            </div>
+            <FieldGroup>
+              <Field data-invalid={!!errors.password}>
+                <FieldLabel htmlFor="password">New password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("password")}
+                  aria-invalid={!!errors.password}
+                />
+                <FieldError errors={[errors.password]} />
+              </Field>
+              <Field data-invalid={!!errors.confirmPassword}>
+                <FieldLabel htmlFor="confirmPassword">
+                  Confirm new password
+                </FieldLabel>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("confirmPassword")}
+                  aria-invalid={!!errors.confirmPassword}
+                />
+                <FieldError errors={[errors.confirmPassword]} />
+              </Field>
+            </FieldGroup>
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={mutation.isPending}
               className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-red-700"
             >
-              {isLoading && (
+              {mutation.isPending && (
                 <Loader2Icon className="mr-2 size-4 animate-spin" />
               )}
               Reset password

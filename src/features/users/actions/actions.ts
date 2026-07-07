@@ -1,13 +1,11 @@
 "use server";
 
-import { requireAdmin } from "@/features/auth/actions";
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-
-const ALLOWED_ROLES = ["user", "admin"];
+import { requireAdmin } from "@/features/auth/actions";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { updateRoleSchema } from "../schemas";
 
 export async function getUsers() {
   await requireAdmin();
@@ -49,7 +47,8 @@ export async function getUsers() {
 export async function updateUserRole(userId: string, role: string) {
   await requireAdmin();
 
-  if (!ALLOWED_ROLES.includes(role)) {
+  const parsed = updateRoleSchema.safeParse({ role });
+  if (!parsed.success) {
     throw new Error("Invalid role");
   }
 

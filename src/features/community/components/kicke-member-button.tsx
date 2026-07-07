@@ -3,9 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserMinusIcon } from "lucide-react";
 import { toast } from "sonner";
-
-import { kickGroupMember } from "../actions/actions";
 import { Button } from "@/components/ui/button";
+import { kickGroupMember } from "../actions/actions";
 
 export function KickMemberButton({
   groupId,

@@ -1,20 +1,11 @@
 "use server";
 
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-
+import { requireUser } from "@/features/auth/actions";
 import { prisma } from "@/lib/prisma";
-import { MessageSchema } from "../schemas";
-import z from "zod";
+import { type MessageFormData, MessageSchema } from "../schemas";
 
 export async function getGroupMessages(groupId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
-  }
+  const session = await requireUser();
 
   const currentMembership = await prisma.groupMember.findUnique({
     where: {
@@ -68,31 +59,18 @@ export async function getGroupMessages(groupId: string) {
   };
 }
 
-export async function sendGroupMessage(values: z.infer<typeof MessageSchema>) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
-  }
+export async function sendGroupMessage(values: MessageFormData) {
+  const session = await requireUser();
 
   const validatedFields = MessageSchema.safeParse(values);
 
   if (!validatedFields.success) {
-    return {
-      success: false,
-      message: validatedFields.error,
-    };
+    throw new Error(
+      validatedFields.error.issues[0]?.message ?? "Invalid message.",
+    );
   }
 
   const { groupId, content } = validatedFields.data;
-
-  const trimmed = content.trim();
-
-  if (!trimmed) {
-    throw new Error("Message cannot be empty.");
-  }
 
   const membership = await prisma.groupMember.findUnique({
     where: {
@@ -111,7 +89,7 @@ export async function sendGroupMessage(values: z.infer<typeof MessageSchema>) {
     data: {
       groupId,
       userId: session.user.id,
-      content: trimmed,
+      content,
     },
     include: {
       user: {

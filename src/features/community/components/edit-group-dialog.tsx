@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { PencilIcon } from "lucide-react";
-import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-import { updateGroup } from "../actions/actions";
-
+import { PencilIcon } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +16,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { updateGroup } from "../actions/actions";
+import { type GroupFormData, groupFormSchema } from "../schemas";
 
 export function EditGroupDialog({
   groupId,
@@ -34,19 +40,31 @@ export function EditGroupDialog({
   currentNeedApproval: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(currentName);
-  const [description, setDescription] = useState(currentDescription);
-  const [needApproval, setNeedApproval] = useState(currentNeedApproval);
-
   const queryClient = useQueryClient();
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<GroupFormData>({
+    resolver: zodResolver(groupFormSchema),
+    defaultValues: {
+      name: currentName,
+      description: currentDescription,
+      needApproval: currentNeedApproval,
+    },
+  });
+
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: GroupFormData) =>
       updateGroup({
         groupId,
-        name,
-        description,
-        needApproval,
+        name: values.name,
+        description: values.description,
+        needApproval: values.needApproval,
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
@@ -59,7 +77,19 @@ export function EditGroupDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          reset({
+            name: currentName,
+            description: currentDescription,
+            needApproval: currentNeedApproval,
+          });
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="default" size="sm">
           <PencilIcon className="mr-2 size-4" />
@@ -68,55 +98,65 @@ export function EditGroupDialog({
       </DialogTrigger>
 
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit group</DialogTitle>
-          <DialogDescription>
-            Update this group&apos;s name and description.
-          </DialogDescription>
-        </DialogHeader>
+        <form onSubmit={handleSubmit((values) => mutation.mutate(values))}>
+          <DialogHeader>
+            <DialogTitle>Edit group</DialogTitle>
+            <DialogDescription>
+              Update this group&apos;s name and description.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <Input
-            placeholder="Group name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <FieldGroup className="py-4">
+            <Field data-invalid={!!errors.name}>
+              <FieldLabel htmlFor="name">Group name</FieldLabel>
+              <Input
+                id="name"
+                placeholder="Group name"
+                {...register("name")}
+                aria-invalid={!!errors.name}
+              />
+              <FieldError errors={[errors.name]} />
+            </Field>
 
-          <Textarea
-            placeholder="Group description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+            <Field data-invalid={!!errors.description}>
+              <FieldLabel htmlFor="description">Description</FieldLabel>
+              <Textarea
+                id="description"
+                placeholder="Group description"
+                {...register("description")}
+                aria-invalid={!!errors.description}
+              />
+              <FieldError errors={[errors.description]} />
+            </Field>
 
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div className="space-y-0.5">
-            <Label htmlFor="needApproval">Require approval</Label>
-          </div>
+            <Field
+              orientation="horizontal"
+              className="justify-between rounded-lg border p-3"
+            >
+              <FieldLabel htmlFor="needApproval">Require approval</FieldLabel>
+              <Switch
+                id="needApproval"
+                checked={watch("needApproval")}
+                onCheckedChange={(checked) => setValue("needApproval", checked)}
+              />
+            </Field>
+          </FieldGroup>
 
-          <Switch
-            id="needApproval"
-            checked={needApproval}
-            onCheckedChange={setNeedApproval}
-          />
-        </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            disabled={mutation.isPending}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            disabled={mutation.isPending || !name.trim()}
-            onClick={() => mutation.mutate()}
-          >
-            {mutation.isPending ? "Saving..." : "Save changes"}
-          </Button>
-        </DialogFooter>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

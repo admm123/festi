@@ -7,7 +7,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { QueryProvider } from "@/features/providers/query-provider";
 
 export default async function DashboardLayout({
   children,
@@ -35,10 +34,7 @@ export default async function DashboardLayout({
             />
           </div>
         </header>
-        <main className="flex-1 p-6">
-          {" "}
-          <QueryProvider>{children}</QueryProvider>
-        </main>
+        <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

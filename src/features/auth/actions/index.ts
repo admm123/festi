@@ -1,8 +1,8 @@
 "use server";
 
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 
 export async function getSession() {
   const session = await auth.api.getSession({
@@ -15,6 +15,14 @@ export async function requireAuth() {
   const session = await getSession();
   if (!session) {
     redirect("/login");
+  }
+  return session;
+}
+
+export async function requireUser() {
+  const session = await getSession();
+  if (!session?.user) {
+    throw new Error("You must be signed in.");
   }
   return session;
 }

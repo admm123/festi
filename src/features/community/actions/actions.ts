@@ -1,11 +1,13 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { requireUser } from "@/features/auth/actions";
+import { prisma } from "@/lib/prisma";
+import { groupFormSchema } from "../schemas";
 
 export async function getRiders() {
+  await requireUser();
+
   const users = await prisma.user.findMany({
     where: {
       banned: false,
@@ -31,9 +33,7 @@ export async function getRiders() {
 }
 
 export async function getGroups() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await requireUser();
 
   const groups = await prisma.group.findMany({
     include: {
@@ -58,34 +58,29 @@ export async function getGroups() {
     createdAt: group.createdAt.toISOString(),
     memberCount: group.members.length,
     createdBy: group.createdBy,
-    isOwner: group.createdById === session?.user.id,
-    isMember: group.members.some(
-      (member) => member.userId === session?.user.id,
-    ),
+    isOwner: group.createdById === session.user.id,
+    isMember: group.members.some((member) => member.userId === session.user.id),
   }));
 }
 
-export async function createGroup({
-  name,
-  description,
-  needApproval,
-}: {
+export async function createGroup(input: {
   name: string;
   description: string;
   needApproval: boolean;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await requireUser();
 
-  if (!session?.user) {
-    throw new Error("You must be signed in to create a group.");
+  const parsed = groupFormSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid group data.");
   }
+
+  const { name, description, needApproval } = parsed.data;
 
   const group = await prisma.group.create({
     data: {
-      name: name.trim(),
-      description: description?.trim(),
+      name,
+      description,
       needApproval,
       createdById: session.user.id,
       members: {
@@ -114,15 +109,14 @@ export async function updateGroup({
 }: {
   groupId: string;
   name: string;
-  description?: string;
+  description: string;
   needApproval: boolean;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await requireUser();
 
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
+  const parsed = groupFormSchema.safeParse({ name, description, needApproval });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid group data.");
   }
 
   const group = await prisma.group.findUnique({
@@ -144,9 +138,9 @@ export async function updateGroup({
   const updatedGroup = await prisma.group.update({
     where: { id: groupId },
     data: {
-      name: name.trim(),
-      description: description?.trim(),
-      needApproval: needApproval,
+      name: parsed.data.name,
+      description: parsed.data.description,
+      needApproval: parsed.data.needApproval,
     },
   });
 
@@ -159,13 +153,7 @@ export async function updateGroup({
 }
 
 export async function deleteGroup(groupId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
-  }
+  const session = await requireUser();
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -196,13 +184,7 @@ export async function kickGroupMember({
   groupId: string;
   memberId: string;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
-  }
+  const session = await requireUser();
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -254,13 +236,7 @@ export async function kickGroupMember({
 }
 
 export async function joinGroup(groupId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
-  }
+  const session = await requireUser();
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -292,13 +268,7 @@ export async function joinGroup(groupId: string) {
 }
 
 export async function leaveGroup(groupId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    throw new Error("You must be signed in.");
-  }
+  const session = await requireUser();
 
   const group = await prisma.group.findUnique({
     where: { id: groupId },

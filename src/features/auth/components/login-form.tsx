@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeftIcon, Loader2Icon, ZapIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { ParticleBackground } from "@/components/particle-background";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,21 +17,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeftIcon, Loader2Icon, ZapIcon } from "lucide-react";
-import { loginSchema, type LoginFormData } from "../schemas";
-import { ParticleBackground } from "@/components/particle-background";
-import { signIn, sendVerificationEmail } from "@/lib/auth-client";
+import { sendVerificationEmail, signIn } from "@/lib/auth-client";
 import { getBanInfo } from "../actions/get-ban-info";
-import { error } from "console";
+import { sessionQueryKey } from "../hooks/use-session";
+import { type LoginFormData, loginSchema } from "../schemas";
 import { formatBanExpiry } from "../utils/formatBanExpiry";
 
 export function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
   const [showResendButton, setShowResendButton] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -43,43 +48,57 @@ export function LoginForm() {
     },
   });
 
-  const handleResendVerification = async () => {
-    setIsResending(true);
-
-    const result = await sendVerificationEmail({
-      email: getValues("email"),
-    });
-
-    if (result.error) {
-      toast.error(
-        result.error.message || "Failed to resend verification email",
-      );
-    } else {
+  const resendMutation = useMutation({
+    mutationFn: async () => {
+      const result = await sendVerificationEmail({
+        email: getValues("email"),
+      });
+      if (result.error) {
+        throw new Error(
+          result.error.message || "Failed to resend verification email",
+        );
+      }
+    },
+    onSuccess: () => {
       toast.success("Verification email sent! Check your inbox.");
       setShowResendButton(false);
-    }
-    setIsResending(false);
-  };
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    setShowResendButton(false);
+  const signInMutation = useMutation({
+    mutationFn: async (data: LoginFormData) => {
+      const result = await signIn.email({
+        email: data.email,
+        password: data.password,
+      });
+      if (result.error) {
+        throw Object.assign(
+          new Error(result.error.message || "Sign in failed"),
+          { code: result.error.code, email: data.email },
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+      router.push("/dashboard");
+      router.refresh();
+    },
+    onError: async (error) => {
+      const err = error as Error & { code?: string; email?: string };
 
-    const result = await signIn.email({
-      email: data.email,
-      password: data.password,
-    });
-
-    if (result.error) {
-      // Check if the error is about email not being verified
-      if (result.error.code === "EMAIL_NOT_VERIFIED") {
+      if (err.code === "EMAIL_NOT_VERIFIED") {
         setShowResendButton(true);
         toast.error("Please verify your email before signing in", {
           description: "Check your inbox for a verification link.",
         });
-      } else if (result.error.code === "BANNED_USER") {
-        const ban = await getBanInfo(data.email);
+        return;
+      }
 
+      if (err.code === "BANNED_USER") {
+        const ban = await getBanInfo(err.email ?? "");
         toast.error("Your account has been banned.", {
           description: (
             <div>
@@ -93,18 +112,20 @@ export function LoginForm() {
             </div>
           ),
         });
-
-        setIsLoading(false);
         return;
-      } else {
-        toast.error(result.error.message);
       }
-      setIsLoading(false);
-      return;
-    }
 
-    router.push("/dashboard");
-    router.refresh();
+      toast.error(err.message);
+    },
+  });
+
+  const handleResendVerification = () => {
+    resendMutation.mutate();
+  };
+
+  const onSubmit = (data: LoginFormData) => {
+    setShowResendButton(false);
+    signInMutation.mutate(data);
   };
 
   return (
@@ -135,44 +156,39 @@ export function LoginForm() {
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="rider@example.com"
-                {...register("email")}
-                aria-invalid={!!errors.email}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-red-500 hover:text-red-400"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                {...register("password")}
-                aria-invalid={!!errors.password}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+            <FieldGroup>
+              <Field data-invalid={!!errors.email}>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="rider@example.com"
+                  {...register("email")}
+                  aria-invalid={!!errors.email}
+                />
+                <FieldError errors={[errors.email]} />
+              </Field>
+
+              <Field data-invalid={!!errors.password}>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-red-500 hover:text-red-400"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("password")}
+                  aria-invalid={!!errors.password}
+                />
+                <FieldError errors={[errors.password]} />
+              </Field>
+            </FieldGroup>
 
             {showResendButton && (
               <Button
@@ -180,10 +196,10 @@ export function LoginForm() {
                 variant="outline"
                 size="sm"
                 onClick={handleResendVerification}
-                disabled={isResending}
+                disabled={resendMutation.isPending}
                 className="w-full border-amber-500/50 text-amber-200 hover:bg-amber-500/20"
               >
-                {isResending && (
+                {resendMutation.isPending && (
                   <Loader2Icon className="mr-2 size-3 animate-spin" />
                 )}
                 Resend verification email
@@ -192,10 +208,10 @@ export function LoginForm() {
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={signInMutation.isPending}
               className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-red-700"
             >
-              {isLoading && (
+              {signInMutation.isPending && (
                 <Loader2Icon className="mr-2 size-4 animate-spin" />
               )}
               Sign in

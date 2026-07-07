@@ -1,21 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-import {
-  banUser,
-  revokeUserSessions,
-  unbanUser,
-  updateUserRole,
-} from "../actions/actions";
-
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import type { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,10 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AdminUser } from "../types";
-import { formatRelativeTime } from "../utils/relative-time";
-import { toast } from "sonner";
-import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  revokeUserSessions,
+  unbanUser,
+  updateUserRole,
+} from "../actions/actions";
+import type { AdminUser } from "../types";
 import { BanUserDialog } from "./banned-dialog";
 
 function formatDate(date: string | null) {
@@ -42,7 +37,6 @@ function formatDate(date: string | null) {
 
 function UserActions({ user }: { user: AdminUser }) {
   const queryClient = useQueryClient();
-  const [openBan, setOpenBan] = useState(false);
 
   const roleMutation = useMutation({
     mutationFn: (role: string) => updateUserRole(user.id, role),

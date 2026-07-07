@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-
-import { createGroup } from "../actions/actions";
-
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -19,31 +16,45 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { createGroup } from "../actions/actions";
+import { type GroupFormData, groupFormSchema } from "../schemas";
 
 export function CreateGroupDialog() {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [needApproval, setNeedApproval] = useState(false);
-  const [description, setDescription] = useState("");
-
   const queryClient = useQueryClient();
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<GroupFormData>({
+    resolver: zodResolver(groupFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      needApproval: false,
+    },
+  });
+
   const mutation = useMutation({
-    mutationFn: () =>
-      createGroup({
-        name,
-        description,
-        needApproval,
-      }),
+    mutationFn: (values: GroupFormData) => createGroup(values),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       toast.success(data.message);
-
-      setName("");
-      setDescription("");
+      reset();
       setOpen(false);
     },
     onError: (error) => {
@@ -52,7 +63,13 @@ export function CreateGroupDialog() {
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm" variant="default">
           <PlusIcon className="mr-2 size-4" />
@@ -61,57 +78,70 @@ export function CreateGroupDialog() {
       </DialogTrigger>
 
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create group</DialogTitle>
-          <DialogDescription>
-            Start a new rider group and invite others to join.
-          </DialogDescription>
-        </DialogHeader>
+        <form onSubmit={handleSubmit((values) => mutation.mutate(values))}>
+          <DialogHeader>
+            <DialogTitle>Create group</DialogTitle>
+            <DialogDescription>
+              Start a new rider group and invite others to join.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <Input
-            placeholder="Group name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <FieldGroup className="py-4">
+            <Field data-invalid={!!errors.name}>
+              <FieldLabel htmlFor="name">Group name</FieldLabel>
+              <Input
+                id="name"
+                placeholder="Group name"
+                {...register("name")}
+                aria-invalid={!!errors.name}
+              />
+              <FieldError errors={[errors.name]} />
+            </Field>
 
-          <Textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div className="space-y-0.5">
-            <Label htmlFor="needApproval">Require approval</Label>
-            <p className="text-sm text-muted-foreground">
-              New members must be approved before joining.
-            </p>
-          </div>
+            <Field data-invalid={!!errors.description}>
+              <FieldLabel htmlFor="description">Description</FieldLabel>
+              <Textarea
+                id="description"
+                placeholder="Description"
+                {...register("description")}
+                aria-invalid={!!errors.description}
+              />
+              <FieldError errors={[errors.description]} />
+            </Field>
 
-          <Switch
-            id="needApproval"
-            checked={needApproval}
-            onCheckedChange={setNeedApproval}
-          />
-        </div>
+            <Field
+              orientation="horizontal"
+              className="justify-between rounded-lg border p-3"
+            >
+              <div className="space-y-0.5">
+                <FieldLabel htmlFor="needApproval">Require approval</FieldLabel>
+                <FieldDescription>
+                  New members must be approved before joining.
+                </FieldDescription>
+              </div>
+              <Switch
+                id="needApproval"
+                checked={watch("needApproval")}
+                onCheckedChange={(checked) => setValue("needApproval", checked)}
+              />
+            </Field>
+          </FieldGroup>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={mutation.isPending}
-          >
-            Cancel
-          </Button>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={mutation.isPending}
+            >
+              Cancel
+            </Button>
 
-          <Button
-            disabled={mutation.isPending || !name.trim()}
-            onClick={() => mutation.mutate()}
-          >
-            {mutation.isPending ? "Creating..." : "Create"}
-          </Button>
-        </DialogFooter>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

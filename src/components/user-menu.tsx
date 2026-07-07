@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/lib/auth-client";
+import { sessionQueryKey } from "@/features/auth/hooks/use-session";
 
 interface UserMenuProps {
   userName: string;
@@ -27,12 +29,20 @@ interface UserMenuProps {
 
 export function UserMenu({ userName, userEmail, userRole }: UserMenuProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isAdmin = userRole === "admin";
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/");
-    router.refresh();
+  const signOutMutation = useMutation({
+    mutationFn: () => signOut(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+      router.push("/");
+      router.refresh();
+    },
+  });
+
+  const handleSignOut = () => {
+    signOutMutation.mutate();
   };
 
   return (
@@ -72,6 +82,7 @@ export function UserMenu({ userName, userEmail, userRole }: UserMenuProps) {
         <DropdownMenuSeparator className="bg-red-500/20" />
         <DropdownMenuItem
           onClick={handleSignOut}
+          disabled={signOutMutation.isPending}
           className="cursor-pointer text-red-500 hover:bg-red-500/10 hover:text-red-500 focus:text-red-500"
         >
           <LogOutIcon className="mr-2 size-4" />

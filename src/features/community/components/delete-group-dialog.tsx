@@ -1,13 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { TrashIcon } from "lucide-react";
-import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-import { deleteGroup } from "../actions/actions";
-
-import { Button } from "@/components/ui/button";
+import { TrashIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { router } from "better-auth/api";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { deleteGroup } from "../actions/actions";
 
 export function DeleteGroupDialog({
   groupId,

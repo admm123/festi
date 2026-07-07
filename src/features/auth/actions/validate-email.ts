@@ -1,6 +1,6 @@
 "use server";
 
-import dns from "dns/promises";
+import dns from "node:dns/promises";
 
 export async function validateEmailDomain(email: string): Promise<{
   valid: boolean;

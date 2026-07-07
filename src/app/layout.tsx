@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Raleway } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { QueryProvider } from "@/features/providers/query-provider";
 import "./globals.css";
 
 const raleway = Raleway({
@@ -23,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${raleway.variable} h-full antialiased`}>
       <body className="min-h-screen bg-background text-foreground font-[family-name:var(--font-raleway)]">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>

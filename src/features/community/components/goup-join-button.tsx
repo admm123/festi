@@ -1,13 +1,11 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-
-import { joinGroup, leaveGroup } from "../actions/actions";
-import { Button } from "@/components/ui/button";
-import type { Group } from "../types";
-import { router } from "better-auth/api";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { joinGroup, leaveGroup } from "../actions/actions";
+import type { Group } from "../types";
 
 export function GroupJoinButton({ group }: { group: Group }) {
   const queryClient = useQueryClient();

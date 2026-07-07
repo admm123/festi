@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import {
+  ArrowLeftIcon,
+  Loader2Icon,
+  MailCheckIcon,
+  ZapIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { ParticleBackground } from "@/components/particle-background";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,26 +21,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  ArrowLeftIcon,
-  Loader2Icon,
-  MailCheckIcon,
-  ZapIcon,
-} from "lucide-react";
-import { registerSchema, type RegisterFormData } from "../schemas";
-import { ParticleBackground } from "@/components/particle-background";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { signUp } from "@/lib/auth-client";
-import { validateEmailDomain } from "../actions/validate-email";
 import {
-  checkUsernameAvailable,
   checkEmailAvailable,
+  checkUsernameAvailable,
 } from "../actions/check-availability";
+import { validateEmailDomain } from "../actions/validate-email";
+import { type RegisterFormData, registerSchema } from "../schemas";
 
 export function RegisterForm() {
-  const [isLoading, setIsLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string>("");
 
@@ -57,49 +62,50 @@ export function RegisterForm() {
 
   const termsValue = watch("terms");
 
-  const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterFormData) => {
+      // Validate email domain exists via DNS MX lookup
+      const emailValidation = await validateEmailDomain(data.email);
+      if (!emailValidation.valid) {
+        throw new Error(emailValidation.error || "Invalid email domain");
+      }
 
-    // Validate email domain exists via DNS MX lookup
-    const emailValidation = await validateEmailDomain(data.email);
-    if (!emailValidation.valid) {
-      toast.error(emailValidation.error || "Invalid email domain");
-      setIsLoading(false);
-      return;
-    }
+      // Check if email is already registered
+      const emailAvailable = await checkEmailAvailable(data.email);
+      if (!emailAvailable.available) {
+        throw new Error(emailAvailable.error || "Email already in use");
+      }
 
-    // Check if email is already registered
-    const emailAvailable = await checkEmailAvailable(data.email);
-    if (!emailAvailable.available) {
-      toast.error(emailAvailable.error || "Email already in use");
-      setIsLoading(false);
-      return;
-    }
+      // Check if username is already taken
+      const usernameAvailable = await checkUsernameAvailable(data.username);
+      if (!usernameAvailable.available) {
+        throw new Error(usernameAvailable.error || "Username already taken");
+      }
 
-    // Check if username is already taken
-    const usernameAvailable = await checkUsernameAvailable(data.username);
-    if (!usernameAvailable.available) {
-      toast.error(usernameAvailable.error || "Username already taken");
-      setIsLoading(false);
-      return;
-    }
+      const result = await signUp.email({
+        email: data.email,
+        password: data.password,
+        name: `${data.firstName} ${data.lastName}`,
+        username: data.username,
+      });
 
-    const result = await signUp.email({
-      email: data.email,
-      password: data.password,
-      name: `${data.firstName} ${data.lastName}`,
-      username: data.username,
-    });
+      if (result.error) {
+        throw new Error(result.error.message || "Registration failed");
+      }
 
-    if (result.error) {
-      toast.error(result.error.message || "Registration failed");
-      setIsLoading(false);
-      return;
-    }
+      return data.email;
+    },
+    onSuccess: (email) => {
+      setRegisteredEmail(email);
+      setVerificationSent(true);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-    setRegisteredEmail(data.email);
-    setVerificationSent(true);
-    setIsLoading(false);
+  const onSubmit = (data: RegisterFormData) => {
+    registerMutation.mutate(data);
   };
 
   // Show verification sent state
@@ -190,8 +196,8 @@ export function RegisterForm() {
             className="space-y-4"
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First name</Label>
+              <Field data-invalid={!!errors.firstName}>
+                <FieldLabel htmlFor="firstName">First name</FieldLabel>
                 <Input
                   id="firstName"
                   type="text"
@@ -199,9 +205,10 @@ export function RegisterForm() {
                   {...register("firstName")}
                   aria-invalid={!!errors.firstName}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last name</Label>
+                <FieldError errors={[errors.firstName]} />
+              </Field>
+              <Field data-invalid={!!errors.lastName}>
+                <FieldLabel htmlFor="lastName">Last name</FieldLabel>
                 <Input
                   id="lastName"
                   type="text"
@@ -209,86 +216,103 @@ export function RegisterForm() {
                   {...register("lastName")}
                   aria-invalid={!!errors.lastName}
                 />
-              </div>
+                <FieldError errors={[errors.lastName]} />
+              </Field>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="speedster"
-                {...register("username")}
-                aria-invalid={!!errors.username}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="rider@example.com"
-                {...register("email")}
-                aria-invalid={!!errors.email}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                {...register("password")}
-                aria-invalid={!!errors.password}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                {...register("confirmPassword")}
-                aria-invalid={!!errors.confirmPassword}
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-start space-x-2">
+            <FieldGroup>
+              <Field data-invalid={!!errors.username}>
+                <FieldLabel htmlFor="username">Username</FieldLabel>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="speedster"
+                  {...register("username")}
+                  aria-invalid={!!errors.username}
+                />
+                <FieldError errors={[errors.username]} />
+              </Field>
+              <Field data-invalid={!!errors.email}>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="rider@example.com"
+                  {...register("email")}
+                  aria-invalid={!!errors.email}
+                />
+                <FieldError errors={[errors.email]} />
+              </Field>
+              <Field data-invalid={!!errors.password}>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("password")}
+                  aria-invalid={!!errors.password}
+                />
+                <FieldError errors={[errors.password]} />
+              </Field>
+              <Field data-invalid={!!errors.confirmPassword}>
+                <FieldLabel htmlFor="confirmPassword">
+                  Confirm password
+                </FieldLabel>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("confirmPassword")}
+                  aria-invalid={!!errors.confirmPassword}
+                />
+                <FieldError errors={[errors.confirmPassword]} />
+              </Field>
+              <Field
+                orientation="horizontal"
+                data-invalid={!!errors.terms}
+                className="items-start"
+              >
                 <Checkbox
                   id="terms"
                   checked={termsValue}
                   onCheckedChange={(checked) =>
-                    setValue("terms", checked === true)
+                    setValue("terms", checked === true, {
+                      shouldValidate: true,
+                    })
                   }
                   className="mt-1"
+                  aria-invalid={!!errors.terms}
                 />
-                <Label
-                  htmlFor="terms"
-                  className="text-sm font-normal leading-relaxed"
-                >
-                  I agree to the{" "}
-                  <Link
-                    href="/terms"
-                    className="text-red-500 hover:text-red-400"
+                <div className="space-y-1">
+                  <FieldLabel
+                    htmlFor="terms"
+                    className="text-sm font-normal leading-relaxed"
                   >
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link
-                    href="/privacy"
-                    className="text-red-500 hover:text-red-400"
-                  >
-                    Privacy Policy
-                  </Link>
-                </Label>
-              </div>
-            </div>
+                    I agree to the{" "}
+                    <Link
+                      href="/terms"
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href="/privacy"
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      Privacy Policy
+                    </Link>
+                  </FieldLabel>
+                  <FieldError errors={[errors.terms]} />
+                </div>
+              </Field>
+            </FieldGroup>
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={registerMutation.isPending}
               className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-red-700"
             >
-              {isLoading && (
+              {registerMutation.isPending && (
                 <Loader2Icon className="mr-2 size-4 animate-spin" />
               )}
               Create account

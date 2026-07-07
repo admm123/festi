@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { BadgeCheck, SearchIcon, UserIcon } from "lucide-react";
-
-import { getRiders } from "../actions/actions";
-import type { Rider } from "../types";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getRiders } from "../actions/actions";
+import type { Rider } from "../types";
 
 export function RidersGrid() {
   const [search, setSearch] = useState("");

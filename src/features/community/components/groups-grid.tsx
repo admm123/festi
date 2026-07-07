@@ -1,17 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { SearchIcon, UsersIcon } from "lucide-react";
-
-import { getGroups } from "../actions/actions";
-import type { Group } from "../types";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatRelativeDate } from "../utils/format-relative-date";
+import { getGroups } from "../actions/actions";
+import type { Group } from "../types";
 import { GroupJoinButton } from "./goup-join-button";
 
 export function GroupsGrid() {

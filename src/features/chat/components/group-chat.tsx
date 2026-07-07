@@ -1,25 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SendIcon } from "lucide-react";
+import { SendIcon, SmileIcon } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getGroupMessages, sendGroupMessage } from "../actions/chat-action";
-
-import { SmileIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Field, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { z } from "zod";
-import { MessageSchema } from "../schemas";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { getGroupMessages, sendGroupMessage } from "../actions/chat-action";
+import { type MessageFormData, MessageSchema } from "../schemas";
 
 type ChatMessage = {
   id: string;
@@ -55,7 +52,7 @@ const emojis = [
 ];
 
 export function GroupChat({ groupId }: { groupId: string }) {
-  const form = useForm<z.infer<typeof MessageSchema>>({
+  const form = useForm<MessageFormData>({
     resolver: zodResolver(MessageSchema),
     defaultValues: {
       content: "",
@@ -75,8 +72,7 @@ export function GroupChat({ groupId }: { groupId: string }) {
   const currentUserId = data?.currentUserId;
 
   const mutation = useMutation({
-    mutationFn: (values: z.infer<typeof MessageSchema>) =>
-      sendGroupMessage(values),
+    mutationFn: (values: MessageFormData) => sendGroupMessage(values),
     onSuccess: () => {
       form.reset();
       queryClient.invalidateQueries({
@@ -168,19 +164,18 @@ export function GroupChat({ groupId }: { groupId: string }) {
         className="flex gap-2 border-t p-3"
         onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
       >
-        <div className="flex-1 space-y-1">
+        <Field
+          className="flex-1"
+          data-invalid={!!form.formState.errors.content}
+        >
           <Input
             placeholder="Write a message..."
             maxLength={200}
             {...form.register("content")}
+            aria-invalid={!!form.formState.errors.content}
           />
-
-          {form.formState.errors.content && (
-            <p className="text-xs text-red-500">
-              {form.formState.errors.content.message}
-            </p>
-          )}
-        </div>
+          <FieldError errors={[form.formState.errors.content]} />
+        </Field>
 
         <Popover>
           <PopoverTrigger asChild>

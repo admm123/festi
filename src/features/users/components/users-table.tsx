@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   flexRender,
   getCoreRowModel,
@@ -7,15 +8,9 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
-import { getUsers } from "../actions/actions";
-import { columns } from "./users-table-columns";
-
 import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import {
   Table,
   TableBody,
@@ -24,7 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AdminUser } from "../types";
+import { getUsers } from "../actions/actions";
+import type { AdminUser } from "../types";
+import { columns } from "./users-table-columns";
 
 export function UsersTable() {
   const [globalFilter, setGlobalFilter] = useState("");
