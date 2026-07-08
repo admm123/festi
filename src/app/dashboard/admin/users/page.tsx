@@ -1,4 +1,3 @@
-import { requireAdmin } from "@/features/auth/actions";
 import {
   Card,
   CardContent,
@@ -6,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UsersTable } from "@/features/users/components/users-table";
-
+import { requireAdmin } from "@/features/auth/guards";
+import { UsersTable } from "@/features/users/components/usersTable";
 
 export default async function UsersPage() {
   await requireAdmin();

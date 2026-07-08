@@ -1,14 +1,14 @@
+export { ForgotPasswordForm } from "./components/forgotPasswordForm";
+export { LoginForm } from "./components/loginForm";
+export { RegisterForm } from "./components/registerForm";
+export { ResetPasswordForm } from "./components/resetPasswordForm";
 export {
+  getCurrentAdmin,
+  getCurrentUser,
   getSession,
   requireAdmin,
   requireAuth,
-  requireUser,
-  signOutAction,
-} from "./actions";
-export { ForgotPasswordForm } from "./components/forgot-password-form";
-export { LoginForm } from "./components/login-form";
-export { RegisterForm } from "./components/register-form";
-export { ResetPasswordForm } from "./components/reset-password-form";
+} from "./guards";
 export { sessionQueryKey, useSession } from "./hooks/use-session";
 export type {
   ForgotPasswordFormData,

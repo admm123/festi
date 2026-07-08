@@ -1,6 +1,6 @@
 Auth/action index.ts ---> why its called index if these are like helper functions. Find better name
 Auth/action index.ts ---> why the functions only redirect the user ? I dont like that better i want them to return True/False and then in the server action where i call it return appropriate error message back to the user. so its userfriendly
-I would love to have like in actions folder is always server action that actually is callable server action if that makes sense. Like server action that is called after users interaction. Server action where there needs to be zod validation called. And all the other helper server functions like validateEmailDomain() i want to have in separate folder. Come up with good names. Or maybe leave them all in one actions folder but the actual actions that are called by a user for example createGroup() and so on they will all be in the file actions.ts alltogether and for each new helper server action create separate file. That way its better for me to understand and see.
+I also dont like how everything is in one action file. I want you to make each and every server action to have separate file, for better control. Also change everything to camelcase naming filenames
 Also i dont like the way you use zod. Example: 
 
 export async function createGroup(input: {

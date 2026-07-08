@@ -5,9 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CreateGroupDialog } from "@/features/community/components/create-group-dialog";
-import { GroupsGrid } from "@/features/community/components/groups-grid";
-import { RidersGrid } from "@/features/community/components/riders-grid";
+import { CreateGroupDialog } from "@/features/community/components/createGroupDialog";
+import { GroupsGrid } from "@/features/community/components/groupsGrid";
+import { RidersGrid } from "@/features/community/components/ridersGrid";
 
 export default async function CommunityPage() {
   return (

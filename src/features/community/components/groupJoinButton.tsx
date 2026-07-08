@@ -4,7 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { joinGroup, leaveGroup } from "../actions/actions";
+import { joinGroup } from "../actions/joinGroup";
+import { leaveGroup } from "../actions/leaveGroup";
 import type { Group } from "../types";
 
 export function GroupJoinButton({ group }: { group: Group }) {
@@ -12,8 +13,15 @@ export function GroupJoinButton({ group }: { group: Group }) {
   const router = useRouter();
 
   const mutation = useMutation({
-    mutationFn: () =>
-      group.isMember ? leaveGroup(group.id) : joinGroup(group.id),
+    mutationFn: async () => {
+      const result = group.isMember
+        ? await leaveGroup(group.id)
+        : await joinGroup(group.id);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       router.refresh();

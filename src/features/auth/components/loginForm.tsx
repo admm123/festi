@@ -5,10 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, Loader2Icon, ZapIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ParticleBackground } from "@/components/particle-background";
+import { ParticleBackground } from "@/components/particleBackground";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,7 +24,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
-import { getBanInfo } from "../actions/get-ban-info";
+import { getBanInfo } from "../actions/getBanInfo";
 import { sessionQueryKey } from "../hooks/use-session";
 import { type LoginFormData, loginSchema } from "../schemas";
 import { formatBanExpiry } from "../utils/formatBanExpiry";

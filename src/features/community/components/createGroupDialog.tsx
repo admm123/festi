@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { createGroup } from "../actions/actions";
+import { createGroup } from "../actions/createGroup";
 import { type GroupFormData, groupFormSchema } from "../schemas";
 
 export function CreateGroupDialog() {
@@ -50,7 +50,13 @@ export function CreateGroupDialog() {
   });
 
   const mutation = useMutation({
-    mutationFn: (values: GroupFormData) => createGroup(values),
+    mutationFn: async (values: GroupFormData) => {
+      const result = await createGroup(values);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       toast.success(data.message);

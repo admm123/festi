@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserMinusIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { kickGroupMember } from "../actions/actions";
+import { kickGroupMember } from "../actions/kickGroupMember";
 
 export function KickMemberButton({
   groupId,
@@ -16,7 +16,13 @@ export function KickMemberButton({
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: () => kickGroupMember({ groupId, memberId }),
+    mutationFn: async () => {
+      const result = await kickGroupMember({ groupId, memberId });
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       toast.success(data.message);

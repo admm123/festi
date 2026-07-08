@@ -1,3 +1,4 @@
+import { BikeIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -5,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BikeIcon } from "lucide-react";
 
 export default function RidesPage() {
   return (

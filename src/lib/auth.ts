@@ -7,6 +7,7 @@ import {
   sendEmail,
   getVerificationEmailHtml,
   getPasswordResetEmailHtml,
+  getExistingAccountEmailHtml,
 } from "./email";
 
 export const auth = betterAuth({
@@ -38,6 +39,15 @@ export const auth = betterAuth({
         to: user.email,
         subject: "Reset your password - Festi",
         html: getPasswordResetEmailHtml(url, user.name),
+      });
+    },
+    // Notify the real account owner when someone tries to sign up with their
+    // email (part of the email enumeration protection flow).
+    onExistingUserSignUp: async ({ user }) => {
+      void sendEmail({
+        to: user.email,
+        subject: "Someone tried to sign up with your email - Festi",
+        html: getExistingAccountEmailHtml(user.name),
       });
     },
     // Handle email enumeration protection with admin plugin fields

@@ -1,9 +1,8 @@
-import { notFound } from "next/navigation";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { BadgeCheck } from "lucide-react";
+import { notFound } from "next/navigation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PrismaClient } from "@/generated/prisma/client";
 
 const dbAdapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: dbAdapter });

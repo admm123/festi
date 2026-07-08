@@ -1,29 +1,26 @@
-import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import {
+  ClockIcon,
+  MessageCircleIcon,
   TrashIcon,
   UsersIcon,
-  MessageCircleIcon,
-  ClockIcon,
 } from "lucide-react";
-
-import { auth } from "@/lib/auth";
-
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-
-import { EditGroupDialog } from "@/features/community/components/edit-group-dialog";
-import { DeleteGroupDialog } from "@/features/community/components/delete-group-dialog";
-import { KickMemberButton } from "@/features/community/components/kicke-member-button";
-import { GroupJoinButton } from "@/features/community/components/goup-join-button";
-import { GroupChat } from "@/features/chat/components/group-chat";
+import { GroupChat } from "@/features/chat/components/groupChat";
+import { DeleteGroupDialog } from "@/features/community/components/deleteGroupDialog";
+import { EditGroupDialog } from "@/features/community/components/editGroupDialog";
+import { GroupJoinButton } from "@/features/community/components/groupJoinButton";
+import { KickMemberButton } from "@/features/community/components/kickMemberButton";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function GroupPage({

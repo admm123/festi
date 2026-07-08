@@ -18,13 +18,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  revokeUserSessions,
-  unbanUser,
-  updateUserRole,
-} from "../actions/actions";
+import { revokeUserSessions } from "../actions/revokeUserSessions";
+import { unbanUser } from "../actions/unbanUser";
+import { updateUserRole } from "../actions/updateUserRole";
 import type { AdminUser } from "../types";
-import { BanUserDialog } from "./banned-dialog";
+import { BanUserDialog } from "./bannedDialog";
 
 function formatDate(date: string | null) {
   if (!date) return "Never";
@@ -39,7 +37,13 @@ function UserActions({ user }: { user: AdminUser }) {
   const queryClient = useQueryClient();
 
   const roleMutation = useMutation({
-    mutationFn: (role: string) => updateUserRole(user.id, role),
+    mutationFn: async (role: string) => {
+      const result = await updateUserRole(user.id, role);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success(data.message);
@@ -50,7 +54,13 @@ function UserActions({ user }: { user: AdminUser }) {
   });
 
   const revokeMutation = useMutation({
-    mutationFn: () => revokeUserSessions(user.id),
+    mutationFn: async () => {
+      const result = await revokeUserSessions(user.id);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
 
     onSuccess: (data) => {
       queryClient.invalidateQueries({
@@ -66,7 +76,13 @@ function UserActions({ user }: { user: AdminUser }) {
   });
 
   const unbanMutation = useMutation({
-    mutationFn: () => unbanUser(user.id),
+    mutationFn: async () => {
+      const result = await unbanUser(user.id);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success(data.message);

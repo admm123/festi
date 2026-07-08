@@ -8,9 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { Input } from "@/components/ui/input";
-import { getGroups } from "../actions/actions";
+import { getGroups } from "../actions/getGroups";
 import type { Group } from "../types";
-import { GroupJoinButton } from "./goup-join-button";
+import { GroupJoinButton } from "./groupJoinButton";
 
 export function GroupsGrid() {
   const [search, setSearch] = useState("");

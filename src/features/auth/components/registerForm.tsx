@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ParticleBackground } from "@/components/particle-background";
+import { ParticleBackground } from "@/components/particleBackground";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,12 +29,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { signUp } from "@/lib/auth-client";
-import {
-  checkEmailAvailable,
-  checkUsernameAvailable,
-} from "../actions/check-availability";
-import { validateEmailDomain } from "../actions/validate-email";
+import { registerUser } from "../actions/registerUser";
 import { type RegisterFormData, registerSchema } from "../schemas";
 
 export function RegisterForm() {
@@ -64,36 +59,11 @@ export function RegisterForm() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
-      // Validate email domain exists via DNS MX lookup
-      const emailValidation = await validateEmailDomain(data.email);
-      if (!emailValidation.valid) {
-        throw new Error(emailValidation.error || "Invalid email domain");
+      const result = await registerUser(data);
+      if (!result.success) {
+        throw new Error(result.error);
       }
-
-      // Check if email is already registered
-      const emailAvailable = await checkEmailAvailable(data.email);
-      if (!emailAvailable.available) {
-        throw new Error(emailAvailable.error || "Email already in use");
-      }
-
-      // Check if username is already taken
-      const usernameAvailable = await checkUsernameAvailable(data.username);
-      if (!usernameAvailable.available) {
-        throw new Error(usernameAvailable.error || "Username already taken");
-      }
-
-      const result = await signUp.email({
-        email: data.email,
-        password: data.password,
-        name: `${data.firstName} ${data.lastName}`,
-        username: data.username,
-      });
-
-      if (result.error) {
-        throw new Error(result.error.message || "Registration failed");
-      }
-
-      return data.email;
+      return result.email;
     },
     onSuccess: (email) => {
       setRegisteredEmail(email);
@@ -135,7 +105,8 @@ export function RegisterForm() {
             </div>
             <CardTitle className="text-2xl">Check your email</CardTitle>
             <CardDescription className="pt-2">
-              We sent a verification link to
+              If that email isn't already registered, we've sent a verification
+              link to
             </CardDescription>
             <p className="font-medium text-foreground">{registeredEmail}</p>
           </CardHeader>

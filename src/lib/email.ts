@@ -125,3 +125,51 @@ export function getPasswordResetEmailHtml(url: string, userName: string) {
     </html>
   `;
 }
+
+export function getExistingAccountEmailHtml(userName: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Someone tried to sign up with your email - Festi</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #ffffff; margin: 0; padding: 40px 20px;">
+        <div style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #1a0505 0%, #0a0a0a 100%); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 40px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-radius: 12px; line-height: 48px; font-size: 24px;">🚴</div>
+            <h1 style="margin: 16px 0 0; font-size: 24px; font-weight: bold;">FESTI</h1>
+          </div>
+
+          <h2 style="margin: 0 0 16px; font-size: 20px; text-align: center;">Someone tried to sign up with your email</h2>
+
+          <p style="color: #a1a1aa; margin: 0 0 24px; text-align: center;">
+            Hey ${userName}, we received a sign-up attempt using this email address, but you already have a Festi account. No new account was created and nothing has changed.
+          </p>
+
+          <p style="color: #a1a1aa; margin: 0 0 24px; text-align: center;">
+            If this was you, just sign in as usual. If you've forgotten your password, you can reset it below.
+          </p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${appUrl}/login" style="display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+              Sign in
+            </a>
+          </div>
+
+          <p style="color: #71717a; font-size: 14px; text-align: center; margin: 24px 0 0;">
+            If this wasn't you, you can safely ignore this email — your account remains secure.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid rgba(239, 68, 68, 0.2); margin: 32px 0;">
+
+          <p style="color: #52525b; font-size: 12px; text-align: center; margin: 0;">
+            <a href="${appUrl}/forgot-password" style="color: #ef4444; text-decoration: none;">Reset your password</a>
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+}

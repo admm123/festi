@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/features/auth/actions";
+import { ShieldIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ShieldIcon } from "lucide-react";
+import { requireAdmin } from "@/features/auth/guards";
 
 export default async function AdminSettingsPage() {
   await requireAdmin();

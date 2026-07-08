@@ -25,7 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { updateGroup } from "../actions/actions";
+import { updateGroup } from "../actions/updateGroup";
 import { type GroupFormData, groupFormSchema } from "../schemas";
 
 export function EditGroupDialog({
@@ -59,13 +59,18 @@ export function EditGroupDialog({
   });
 
   const mutation = useMutation({
-    mutationFn: (values: GroupFormData) =>
-      updateGroup({
+    mutationFn: async (values: GroupFormData) => {
+      const result = await updateGroup({
         groupId,
         name: values.name,
         description: values.description,
         needApproval: values.needApproval,
-      }),
+      });
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       toast.success(data.message);

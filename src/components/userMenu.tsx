@@ -1,14 +1,14 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-  LogOutIcon,
-  UserIcon,
-  ShieldCheckIcon,
   ChevronDownIcon,
+  LogOutIcon,
+  ShieldCheckIcon,
+  UserIcon,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,8 +18,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { signOut } from "@/lib/auth-client";
 import { sessionQueryKey } from "@/features/auth/hooks/use-session";
+import { signOut } from "@/lib/auth-client";
 
 interface UserMenuProps {
   userName: string;

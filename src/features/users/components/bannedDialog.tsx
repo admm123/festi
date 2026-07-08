@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { banUser } from "../actions/actions";
+import { banUser } from "../actions/banUser";
 import { BAN_DURATIONS, type BanUserFormData, banUserSchema } from "../schemas";
 
 export function BanUserDialog({
@@ -60,8 +60,17 @@ export function BanUserDialog({
   });
 
   const mutation = useMutation({
-    mutationFn: (values: BanUserFormData) =>
-      banUser(userId, values.reason, BAN_DURATIONS[values.duration]),
+    mutationFn: async (values: BanUserFormData) => {
+      const result = await banUser(
+        userId,
+        values.reason,
+        BAN_DURATIONS[values.duration],
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success(data.message);

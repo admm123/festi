@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { Input } from "@/components/ui/input";
-import { getRiders } from "../actions/actions";
+import { getRiders } from "../actions/getRiders";
 import type { Rider } from "../types";
 
 export function RidersGrid() {

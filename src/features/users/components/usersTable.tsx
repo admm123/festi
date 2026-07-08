@@ -19,9 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getUsers } from "../actions/actions";
+import { getUsers } from "../actions/getUsers";
 import type { AdminUser } from "../types";
-import { columns } from "./users-table-columns";
+import { columns } from "./usersTableColumns";
 
 export function UsersTable() {
   const [globalFilter, setGlobalFilter] = useState("");

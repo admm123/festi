@@ -1,3 +1,4 @@
+import { BellIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -5,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BellIcon } from "lucide-react";
 
 export default function NotificationsPage() {
   return (

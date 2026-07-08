@@ -1,11 +1,14 @@
 "use server";
 
-import { requireUser } from "@/features/auth/actions";
+import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { type MessageFormData, MessageSchema } from "../schemas";
 
 export async function getGroupMessages(groupId: string) {
-  const session = await requireUser();
+  const session = await getCurrentUser();
+  if (!session) {
+    throw new Error("You must be signed in.");
+  }
 
   const currentMembership = await prisma.groupMember.findUnique({
     where: {
@@ -60,7 +63,10 @@ export async function getGroupMessages(groupId: string) {
 }
 
 export async function sendGroupMessage(values: MessageFormData) {
-  const session = await requireUser();
+  const session = await getCurrentUser();
+  if (!session) {
+    throw new Error("You must be signed in.");
+  }
 
   const validatedFields = MessageSchema.safeParse(values);
 

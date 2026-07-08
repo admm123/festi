@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ParticleBackground } from "@/components/particle-background";
+import { ParticleBackground } from "@/components/particleBackground";
 import { Button } from "@/components/ui/button";
 import {
   Card,

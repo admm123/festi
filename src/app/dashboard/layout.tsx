@@ -1,12 +1,12 @@
-import { requireAuth } from "@/features/auth/actions";
 import { AppSidebar } from "@/components/sidebar";
-import { UserMenu } from "@/components/user-menu";
+import { Separator } from "@/components/ui/separator";
 import {
-  SidebarProvider,
   SidebarInset,
+  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { UserMenu } from "@/components/userMenu";
+import { requireAuth } from "@/features/auth/guards";
 
 export default async function DashboardLayout({
   children,

@@ -26,27 +26,3 @@ export async function checkUsernameAvailable(username: string): Promise<{
     return { available: true };
   }
 }
-
-export async function checkEmailAvailable(email: string): Promise<{
-  available: boolean;
-  error?: string;
-}> {
-  try {
-    const existingUser = await prisma.user.findFirst({
-      where: { email },
-      select: { id: true },
-    });
-
-    if (existingUser) {
-      return {
-        available: false,
-        error: "An account with this email already exists",
-      };
-    }
-
-    return { available: true };
-  } catch (error) {
-    console.error("Email check error:", error);
-    return { available: true };
-  }
-}

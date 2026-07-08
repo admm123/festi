@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ParticleBackground } from "@/components/particle-background";
+import { ParticleBackground } from "@/components/particleBackground";
 
 export default function HomePage() {
   return (

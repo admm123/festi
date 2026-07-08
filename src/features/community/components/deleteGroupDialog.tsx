@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { deleteGroup } from "../actions/actions";
+import { deleteGroup } from "../actions/deleteGroup";
 
 export function DeleteGroupDialog({
   groupId,
@@ -31,7 +31,13 @@ export function DeleteGroupDialog({
   const router = useRouter();
 
   const mutation = useMutation({
-    mutationFn: () => deleteGroup(groupId),
+    mutationFn: async () => {
+      const result = await deleteGroup(groupId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       toast.success(`${groupName} has been deleted.`);
