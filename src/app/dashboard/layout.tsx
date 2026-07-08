@@ -1,3 +1,4 @@
+import GoBack from "@/components/goBack";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -34,7 +35,12 @@ export default async function DashboardLayout({
             />
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+
+        <main className="flex-1 p-6">
+          {" "}
+          <GoBack className="mb-4" />
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -12,6 +12,7 @@ export async function getRiders() {
   const users = await prisma.user.findMany({
     where: {
       banned: false,
+      NOT: { id: session.user.id },
     },
     orderBy: {
       createdAt: "desc",

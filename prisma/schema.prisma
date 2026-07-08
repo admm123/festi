@@ -29,6 +29,8 @@ model User {
   accounts      Account[]
   groups        GroupMember[]
   groupMessages GroupMessage[]
+  followers     Follow[]      @relation("Following")
+  following     Follow[]      @relation("Follower")
 
   createdGroups Group[] @relation("GroupCreator")
 
@@ -133,4 +135,19 @@ model GroupMessage {
   @@index([groupId])
   @@index([userId])
   @@map("group_message")
+}
+
+model Follow {
+  id         String   @id @default(cuid())
+  followerId String
+  followingId String
+  createdAt  DateTime @default(now())
+
+  follower   User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following  User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follow")
 }

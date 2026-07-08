@@ -34,7 +34,7 @@ interface NavItem {
 }
 
 const contentItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: HomeIcon },
+  { label: "For You", href: "/dashboard", icon: HomeIcon },
 
   { label: "Community", href: "/dashboard/community", icon: UsersIcon },
   {

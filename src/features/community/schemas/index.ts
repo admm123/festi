@@ -15,3 +15,9 @@ export const groupFormSchema = z.object({
 });
 
 export type GroupFormData = z.infer<typeof groupFormSchema>;
+
+export const followUserFormSchema = z.object({
+  targetId: z.string().trim().min(1, "User ID is required"),
+});
+
+export type FollowUserFormData = z.infer<typeof followUserFormSchema>;
