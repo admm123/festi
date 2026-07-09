@@ -3,6 +3,8 @@
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { type MessageFormData, MessageSchema } from "../schemas";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function getGroupMessages(groupId: string) {
   const session = await getCurrentUser();
@@ -108,6 +110,19 @@ export async function sendGroupMessage(values: MessageFormData) {
       },
     },
   });
+
+  await Logger.log(
+    ActivityAction.GROUP_MESSAGE_SENT,
+    `${session.user.email} just sent a message!`,
+    {
+      actorId: session.user.id,
+      targetType: "Group",
+      targetId: groupId,
+      metadata: {
+        messageId: message.id,
+      },
+    },
+  );
 
   return {
     id: message.id,

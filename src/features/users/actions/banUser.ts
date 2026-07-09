@@ -5,6 +5,8 @@ import { headers } from "next/headers";
 import { getCurrentAdmin } from "@/features/auth/guards";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function banUser(
   userId: string,
@@ -42,6 +44,16 @@ export async function banUser(
   });
 
   revalidatePath("/dashboard/admin/users");
+
+  await Logger.log(
+    ActivityAction.USER_BANNED,
+    `${session.user.email} banned ${user.name}.`,
+    {
+      actorId: session.user.id,
+      targetUserId: userId,
+      metadata: { banReason, banExpiresIn },
+    },
+  );
 
   return {
     success: true as const,

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function joinGroup(groupId: string) {
   const session = await getCurrentUser();
@@ -37,6 +39,16 @@ export async function joinGroup(groupId: string) {
   });
 
   revalidatePath(`/groups/${groupId}`);
+
+  await Logger.log(
+    ActivityAction.GROUP_JOINED,
+    `${session.user.email} joined a group.`,
+    {
+      actorId: session.user.id,
+      targetType: "Group",
+      targetId: groupId,
+    },
+  );
 
   return {
     success: true as const,

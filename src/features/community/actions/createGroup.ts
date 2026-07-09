@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { type GroupFormData, groupFormSchema } from "../schemas";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function createGroup(input: GroupFormData) {
   const session = await getCurrentUser();
@@ -39,6 +41,17 @@ export async function createGroup(input: GroupFormData) {
   });
 
   revalidatePath("/groups");
+
+  await Logger.log(
+    ActivityAction.GROUP_CREATED,
+    `${session.user.email} created the group "${group.name}".`,
+    {
+      actorId: session.user.id,
+      targetType: "Group",
+      targetId: group.id,
+      metadata: { name: group.name, needApproval },
+    },
+  );
 
   return {
     success: true as const,

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { type GroupFormData, groupFormSchema } from "../schemas";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function updateGroup(input: GroupFormData & { groupId: string }) {
   const session = await getCurrentUser();
@@ -48,6 +50,17 @@ export async function updateGroup(input: GroupFormData & { groupId: string }) {
   });
 
   revalidatePath(`/groups/${input.groupId}`);
+
+  await Logger.log(
+    ActivityAction.GROUP_UPDATED,
+    `${session.user.email} updated the group "${updatedGroup.name}".`,
+    {
+      actorId: session.user.id,
+      targetType: "Group",
+      targetId: updatedGroup.id,
+      metadata: { name: updatedGroup.name },
+    },
+  );
 
   return {
     success: true as const,

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function kickGroupMember(input: {
   groupId: string;
@@ -61,6 +63,17 @@ export async function kickGroupMember(input: {
   });
 
   revalidatePath(`/groups/${input.groupId}`);
+
+  await Logger.log(
+    ActivityAction.GROUP_MEMBER_REMOVED,
+    `${session.user.email} kicked ${member.user.name} from a group.`,
+    {
+      actorId: session.user.id,
+      targetUserId: member.userId,
+      targetType: "Group",
+      targetId: input.groupId,
+    },
+  );
 
   return {
     success: true as const,

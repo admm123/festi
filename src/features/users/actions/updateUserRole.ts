@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentAdmin } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { updateRoleSchema } from "../schemas";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function updateUserRole(userId: string, role: string) {
   const session = await getCurrentAdmin();
@@ -34,6 +36,16 @@ export async function updateUserRole(userId: string, role: string) {
   });
 
   revalidatePath("/admin/users");
+
+  await Logger.log(
+    ActivityAction.USER_ROLE_CHANGED,
+    `${session.user.email} changed ${user.name}'s role to ${parsed.data.role}.`,
+    {
+      actorId: session.user.id,
+      targetUserId: userId,
+      metadata: { from: user.role, to: parsed.data.role },
+    },
+  );
 
   return {
     success: true as const,

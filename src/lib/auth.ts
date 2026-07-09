@@ -1,7 +1,10 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 import {
   sendEmail,
@@ -41,6 +44,18 @@ export const auth = betterAuth({
         html: getPasswordResetEmailHtml(url, user.name),
       });
     },
+    // Fires after a password reset completes successfully.
+    onPasswordReset: async ({ user }) => {
+      await Logger.log(
+        ActivityAction.USER_CHANGED_PASSWORD,
+        `${user.email} changed their password.`,
+        {
+          actorId: user.id,
+          targetUserId: user.id,
+          targetType: "Auth",
+        },
+      );
+    },
     // Notify the real account owner when someone tries to sign up with their
     // email (part of the email enumeration protection flow).
     onExistingUserSignUp: async ({ user }) => {
@@ -72,6 +87,17 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
+    afterEmailVerification: async (user) => {
+      await Logger.log(
+        ActivityAction.USER_EMAIL_VERIFIED,
+        `${user.email} verified their email.`,
+        {
+          actorId: user.id,
+          targetUserId: user.id,
+          targetType: "Auth",
+        },
+      );
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
@@ -80,6 +106,49 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 30, // 5 minutes
     },
+  },
+  // Logs a successful login whenever a new session is created.
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          await Logger.log(ActivityAction.USER_LOGGED_IN, "User logged in.", {
+            actorId: session.userId,
+            targetUserId: session.userId,
+            targetType: "Auth",
+          });
+        },
+      },
+    },
+  },
+  // Captures failed sign-in / sign-up attempts. On failure better-auth stores
+  // the thrown APIError on `ctx.context.returned`, which still reaches the
+  // after hook.
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const path = ctx.path;
+      if (path !== "/sign-in/email" && path !== "/sign-up/email") return;
+
+      const failed = ctx.context.returned instanceof APIError;
+      if (!failed) return;
+
+      const email = (ctx.body as { email?: string } | undefined)?.email ?? null;
+      const reason = (ctx.context.returned as APIError).message;
+
+      if (path === "/sign-in/email") {
+        await Logger.log(
+          ActivityAction.USER_LOGIN_FAILED,
+          `Failed login attempt for ${email ?? "unknown"}.`,
+          { targetType: "Auth", metadata: { email, reason } },
+        );
+      } else {
+        await Logger.log(
+          ActivityAction.USER_REGISTRATION_FAILED,
+          `Failed registration attempt for ${email ?? "unknown"}.`,
+          { targetType: "Auth", metadata: { email, reason } },
+        );
+      }
+    }),
   },
   plugins: [
     admin({

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 export async function deleteGroup(groupId: string) {
   const session = await getCurrentUser();
@@ -35,6 +37,17 @@ export async function deleteGroup(groupId: string) {
   });
 
   revalidatePath("/groups");
+
+  await Logger.log(
+    ActivityAction.GROUP_DELETED,
+    `${session.user.email} deleted the group "${group.name}".`,
+    {
+      actorId: session.user.id,
+      targetType: "Group",
+      targetId: group.id,
+      metadata: { name: group.name },
+    },
+  );
 
   return {
     success: true as const,

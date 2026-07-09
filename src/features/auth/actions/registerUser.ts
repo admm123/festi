@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth";
 import { type RegisterFormData, registerSchema } from "../schemas";
 import { checkUsernameAvailable } from "./checkAvailability";
 import { validateEmailDomain } from "./validateEmail";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 
 /**
  * Single entry point for registration. Runs every check server-side in one
@@ -46,7 +48,7 @@ export async function registerUser(input: RegisterFormData) {
   }
 
   try {
-    await auth.api.signUpEmail({
+    const user = await auth.api.signUpEmail({
       headers: await headers(),
       body: {
         email,
@@ -55,6 +57,16 @@ export async function registerUser(input: RegisterFormData) {
         username,
       },
     });
+
+    await Logger.log(
+      ActivityAction.USER_REGISTERED,
+      `${email} user just registered!`,
+      {
+        actorId: user.user.id,
+        targetType: "Register",
+        metadata: { username: user.user.username, email: user.user.email },
+      },
+    );
   } catch (error) {
     return {
       success: false as const,
