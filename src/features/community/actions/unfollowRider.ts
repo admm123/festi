@@ -1,10 +1,11 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth";
-import { FollowUserFormData, followUserFormSchema } from "../schemas";
-import { prisma } from "@/lib/prisma";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { NotificationType, Notifier } from "@/features/notification";
+import { prisma } from "@/lib/prisma";
+import { type FollowUserFormData, followUserFormSchema } from "../schemas";
 
 export async function unfollowRider(values: FollowUserFormData) {
   const validatedData = followUserFormSchema.safeParse(values);
@@ -56,6 +57,13 @@ export async function unfollowRider(values: FollowUserFormData) {
       targetUserId: targetId,
     },
   );
+
+  // Remove the unseen "followed you" notification to avoid follow/unfollow spam.
+  await Notifier.remove({
+    type: NotificationType.USER_FOLLOWED,
+    userId: targetId,
+    actorId: session.user.id,
+  });
 
   return { success: true, message: "You are no longer following this user." };
 }

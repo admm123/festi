@@ -1,10 +1,11 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth";
-import { FollowUserFormData, followUserFormSchema } from "../schemas";
-import { prisma } from "@/lib/prisma";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { NotificationType, Notifier } from "@/features/notification";
+import { prisma } from "@/lib/prisma";
+import { type FollowUserFormData, followUserFormSchema } from "../schemas";
 
 export async function followRider(values: FollowUserFormData) {
   const validatedData = followUserFormSchema.safeParse(values);
@@ -54,6 +55,12 @@ export async function followRider(values: FollowUserFormData) {
       targetUserId: targetId,
     },
   );
+
+  await Notifier.push({
+    type: NotificationType.USER_FOLLOWED,
+    userId: targetId,
+    actorId: session.user.id,
+  });
 
   return { success: true, message: "You are now following this user." };
 }

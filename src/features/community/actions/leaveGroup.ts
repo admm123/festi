@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { NotificationType, Notifier } from "@/features/notification";
 
 export async function leaveGroup(groupId: string) {
   const session = await getCurrentUser();
@@ -50,6 +51,15 @@ export async function leaveGroup(groupId: string) {
       targetId: groupId,
     },
   );
+
+  // Remove the unseen "joined your group" notification to avoid join/leave spam.
+  await Notifier.remove({
+    type: NotificationType.GROUP_JOINED,
+    userId: group.createdById,
+    actorId: session.user.id,
+    targetType: "Group",
+    targetId: groupId,
+  });
 
   return {
     success: true as const,

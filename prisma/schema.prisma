@@ -23,12 +23,17 @@ model User {
   banned        Boolean?      @default(false)
   banReason     String?
   banExpires    DateTime?
+  lastSeenAt    DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   sessions      Session[]
   accounts      Account[]
   groups        GroupMember[]
   groupMessages GroupMessage[]
+  sentMessages     DirectMessage[] @relation("SentDirectMessages")
+  receivedMessages DirectMessage[] @relation("ReceivedDirectMessages")
+  notifications          Notification[] @relation("UserNotifications")
+  triggeredNotifications Notification[] @relation("NotificationActor")
   followers     Follow[]      @relation("Following")
   following     Follow[]      @relation("Follower")
 
@@ -140,6 +145,53 @@ model GroupMessage {
   @@map("group_message")
 }
 
+model DirectMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  senderId String
+  sender   User   @relation("SentDirectMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  recipientId String
+  recipient   User   @relation("ReceivedDirectMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([senderId, recipientId])
+  @@map("direct_message")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  read      Boolean          @default(false)
+  message   String?
+  createdAt DateTime         @default(now())
+
+  // Who receives the notification.
+  userId String
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Who triggered it (optional, e.g. the follower).
+  actorId String?
+  actor   User?   @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Polymorphic reference to any related entity (e.g. a group).
+  targetType String?
+  targetId   String?
+
+  @@index([userId])
+  @@index([userId, read])
+  @@map("notification")
+}
+
+enum NotificationType {
+  USER_FOLLOWED
+  GROUP_JOINED
+}
+
 model Follow {
   id         String   @id @default(cuid())
   followerId String
@@ -177,6 +229,7 @@ enum ActivityAction {
   GROUP_MEMBER_APPROVED
   GROUP_MEMBER_REMOVED
   GROUP_MESSAGE_SENT
+  DIRECT_MESSAGE_SENT
   OTHER
 }
 
