@@ -1,39 +1,27 @@
-import { BikeIcon } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PlusIcon } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { RidesGrid } from "@/features/rides/components/ridesGrid";
 
 export default function RidesPage() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Community Rides</h1>
-        <p className="text-muted-foreground">
-          Plan new rides and join others on their adventures
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Community Rides</h1>
+          <p className="text-muted-foreground">
+            Plan new rides and join others on their adventures
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/dashboard/community-rides/new">
+            <PlusIcon className="size-4" />
+            Create Ride
+          </Link>
+        </Button>
       </div>
 
-      <Card className="border-red-500/20">
-        <CardHeader>
-          <CardTitle>Upcoming Rides</CardTitle>
-          <CardDescription>
-            Find rides to join or create your own
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <BikeIcon className="mb-4 size-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No rides scheduled yet</p>
-            <p className="text-sm text-muted-foreground">
-              Create your first ride and invite others to join!
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <RidesGrid />
     </div>
   );
 }
