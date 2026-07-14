@@ -291,6 +291,7 @@ model Ride {
   creatorId     String
   title         String
   description   String?
+  startLocation String?
   startTime     DateTime
   distance      Float
   duration      Int

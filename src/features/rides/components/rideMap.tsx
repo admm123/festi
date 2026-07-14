@@ -20,6 +20,10 @@ type RideMapProps = {
   onAddWaypoint?: (waypoint: Waypoint) => void;
   /** Insert a waypoint at a specific position (used by route dragging). */
   onInsertWaypoint?: (index: number, waypoint: Waypoint) => void;
+  /** Move an existing waypoint (used by dragging its marker). */
+  onMoveWaypoint?: (index: number, waypoint: Waypoint) => void;
+  /** Initial map center as [lng, lat]; falls back to the default. */
+  initialCenter?: [number, number];
   className?: string;
 };
 
@@ -81,6 +85,8 @@ export function RideMap({
   interactive = false,
   onAddWaypoint,
   onInsertWaypoint,
+  onMoveWaypoint,
+  initialCenter,
   className,
 }: RideMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -88,21 +94,25 @@ export function RideMap({
   const markersRef = useRef<Marker[]>([]);
   const addWaypointRef = useRef(onAddWaypoint);
   const insertWaypointRef = useRef(onInsertWaypoint);
+  const moveWaypointRef = useRef(onMoveWaypoint);
   const interactiveRef = useRef(interactive);
   const waypointsRef = useRef(waypoints);
   const routeCoordinatesRef = useRef(routeCoordinates ?? []);
+  const initialCenterRef = useRef(initialCenter);
   const [ready, setReady] = useState(false);
 
   // Keep the latest values available inside handlers bound once on the map.
   useEffect(() => {
     addWaypointRef.current = onAddWaypoint;
     insertWaypointRef.current = onInsertWaypoint;
+    moveWaypointRef.current = onMoveWaypoint;
     interactiveRef.current = interactive;
     waypointsRef.current = waypoints;
     routeCoordinatesRef.current = routeCoordinates ?? [];
   }, [
     onAddWaypoint,
     onInsertWaypoint,
+    onMoveWaypoint,
     interactive,
     waypoints,
     routeCoordinates,
@@ -116,6 +126,7 @@ export function RideMap({
 
     let map: MapLibreMap | null = null;
     let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
 
     void (async () => {
       const maplibregl = (await import("maplibre-gl")).default;
@@ -126,8 +137,8 @@ export function RideMap({
       map = new maplibregl.Map({
         container: containerRef.current,
         style: getMapStyle(),
-        center: DEFAULT_MAP_CENTER,
-        zoom: DEFAULT_MAP_ZOOM,
+        center: initialCenterRef.current ?? DEFAULT_MAP_CENTER,
+        zoom: initialCenterRef.current ? 13 : DEFAULT_MAP_ZOOM,
         attributionControl: { compact: true },
         // Placing waypoints relies on single clicks; double-click zoom would
         // fire when adding points quickly and fight the interaction.
@@ -136,6 +147,14 @@ export function RideMap({
       mapRef.current = map;
 
       map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+      // Keep the canvas sized to its container (e.g. when the step animates in
+      // or the layout changes), so the map never renders blank/mis-sized.
+      const observedMap = map;
+      resizeObserver = new ResizeObserver(() => observedMap.resize());
+      if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
+      }
 
       // Drag-to-shape state, scoped to this map instance.
       let dragTempMarker: Marker | null = null;
@@ -289,6 +308,23 @@ export function RideMap({
           if (!interactiveRef.current || !map) {
             return;
           }
+
+          // If the press starts on/near an existing waypoint, let the marker
+          // handle the drag instead of inserting a new point.
+          const activeMap = map;
+          const nearWaypoint = waypointsRef.current.some((wp) => {
+            const projected = activeMap.project([wp.lng, wp.lat]);
+            return (
+              Math.hypot(
+                projected.x - downEvent.point.x,
+                projected.y - downEvent.point.y,
+              ) < 18
+            );
+          });
+          if (nearWaypoint) {
+            return;
+          }
+
           // Prevent the map from panning while we drag the route.
           downEvent.preventDefault();
           isDraggingRoute = true;
@@ -313,6 +349,7 @@ export function RideMap({
         });
 
         setReady(true);
+        map.resize();
       });
 
       map.on("click", (event) => {
@@ -328,6 +365,7 @@ export function RideMap({
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       for (const marker of markersRef.current) {
         marker.remove();
       }
@@ -358,15 +396,71 @@ export function RideMap({
       }
       markersRef.current = [];
 
-      waypoints.forEach((waypoint, index) => {
-        const el = document.createElement("div");
-        el.className =
-          "flex size-6 items-center justify-center rounded-full border-2 border-white bg-red-500 text-xs font-semibold text-white shadow";
-        el.textContent = String(index + 1);
+      const first = waypoints[0];
+      const last = waypoints[waypoints.length - 1];
+      const isRoundTrip =
+        waypoints.length > 1 &&
+        first.lat === last.lat &&
+        first.lng === last.lng;
 
-        const marker = new maplibregl.Marker({ element: el })
+      waypoints.forEach((waypoint, index) => {
+        const isStart = index === 0;
+        const isEnd = waypoints.length > 1 && index === waypoints.length - 1;
+
+        // For a round trip the start and end share a location — render one
+        // combined marker and skip the duplicate end.
+        if (isRoundTrip && isEnd) {
+          return;
+        }
+
+        const interactiveMarker = interactiveRef.current;
+        // Start = green, end = blue, intermediate stops = red.
+        const bgClass = isStart
+          ? "bg-green-500"
+          : isEnd
+            ? "bg-blue-500"
+            : "bg-red-500";
+        const label =
+          isRoundTrip && isStart
+            ? "S/E"
+            : isStart
+              ? "S"
+              : isEnd
+                ? "E"
+                : String(index + 1);
+        // Outer element is positioned by MapLibre (inline transform); the inner
+        // element handles the hover scale so the two transforms don't clash.
+        const el = document.createElement("div");
+        const inner = document.createElement("div");
+        inner.className =
+          `flex size-6 items-center justify-center rounded-full border-2 border-white ${bgClass} text-[10px] font-semibold text-white shadow` +
+          (interactiveMarker
+            ? " cursor-grab transition-transform duration-150 hover:scale-125 hover:ring-2 hover:ring-white/70"
+            : "");
+        inner.textContent = label;
+        el.appendChild(inner);
+
+        const marker = new maplibregl.Marker({
+          element: el,
+          draggable: interactiveMarker,
+        })
           .setLngLat([waypoint.lng, waypoint.lat])
           .addTo(map);
+
+        if (interactiveMarker) {
+          marker.on("dragstart", () => {
+            inner.style.cursor = "grabbing";
+          });
+          marker.on("dragend", () => {
+            inner.style.cursor = "";
+            const lngLat = marker.getLngLat();
+            moveWaypointRef.current?.(index, {
+              lat: lngLat.lat,
+              lng: lngLat.lng,
+            });
+          });
+        }
+
         markersRef.current.push(marker);
       });
     })();

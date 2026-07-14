@@ -21,7 +21,7 @@ export function RouteThumbnail({
   routeGeometry,
   className,
 }: RouteThumbnailProps) {
-  const path = useMemo(() => {
+  const shape = useMemo(() => {
     const coords = decodeRouteGeometry(routeGeometry);
     if (coords.length < 2) {
       return null;
@@ -56,13 +56,30 @@ export function RouteThumbnail({
     const offsetX = (WIDTH - spanX * scale) / 2;
     const offsetY = (HEIGHT - spanY * scale) / 2;
 
-    return projected
-      .map(([x, y], index) => {
-        const px = offsetX + (x - minX) * scale;
-        const py = offsetY + (y - minY) * scale;
-        return `${index === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`;
-      })
+    const points = projected.map(
+      ([x, y]) =>
+        [offsetX + (x - minX) * scale, offsetY + (y - minY) * scale] as const,
+    );
+
+    const path = points
+      .map(
+        ([px, py], index) =>
+          `${index === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`,
+      )
       .join(" ");
+
+    const [firstLng, firstLat] = coords[0];
+    const [lastLng, lastLat] = coords[coords.length - 1];
+    const isRoundTrip =
+      Math.abs(firstLng - lastLng) < 1e-5 &&
+      Math.abs(firstLat - lastLat) < 1e-5;
+
+    return {
+      path,
+      start: points[0],
+      end: points[points.length - 1],
+      isRoundTrip,
+    };
   }, [routeGeometry]);
 
   return (
@@ -73,15 +90,35 @@ export function RouteThumbnail({
       aria-label="Route preview"
       preserveAspectRatio="xMidYMid meet"
     >
-      {path && (
-        <path
-          d={path}
-          fill="none"
-          stroke="#ef4444"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      {shape && (
+        <>
+          <path
+            d={shape.path}
+            fill="none"
+            stroke="#ef4444"
+            strokeWidth={3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {!shape.isRoundTrip && (
+            <circle
+              cx={shape.end[0]}
+              cy={shape.end[1]}
+              r={4.5}
+              fill="#3b82f6"
+              stroke="#fff"
+              strokeWidth={1.5}
+            />
+          )}
+          <circle
+            cx={shape.start[0]}
+            cy={shape.start[1]}
+            r={4.5}
+            fill="#22c55e"
+            stroke="#fff"
+            strokeWidth={1.5}
+          />
+        </>
       )}
     </svg>
   );

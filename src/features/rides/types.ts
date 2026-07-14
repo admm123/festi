@@ -4,6 +4,14 @@ export type RouteProfile = "trekking" | "fastbike" | "gravel";
 
 export type RideParticipantStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+/** A geocoded place returned by the `searchPlaces` action. */
+export type PlaceResult = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+};
+
 /** Result of a routing request, returned by the `calculateRoute` action. */
 export type RouteResult = {
   /** Total distance in meters. */
@@ -31,6 +39,7 @@ export type RideSummary = {
   id: string;
   title: string;
   description: string | null;
+  startLocation: string | null;
   startTime: string;
   distance: number;
   duration: number;

@@ -2,15 +2,17 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, Loader2Icon, XIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { respondToJoinRequest } from "../actions/respondToJoinRequest";
-import type { RideParticipantInfo } from "../types";
+import type { RideCreator, RideParticipantInfo } from "../types";
 
 type RideParticipantsProps = {
   isCreator: boolean;
+  creator: RideCreator;
   participants: RideParticipantInfo[];
 };
 
@@ -23,8 +25,31 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+function RiderChip({ user, host }: { user: RideCreator; host?: boolean }) {
+  return (
+    <Link
+      href={`/dashboard/community/u/${user.id}`}
+      className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 transition-colors hover:bg-muted"
+    >
+      <Avatar className="size-6">
+        <AvatarImage src={user.image ?? undefined} />
+        <AvatarFallback className="text-xs">
+          {initials(user.name)}
+        </AvatarFallback>
+      </Avatar>
+      <span className="text-sm">{user.username ?? user.name}</span>
+      {host && (
+        <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+          Host
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export function RideParticipants({
   isCreator,
+  creator,
   participants,
 }: RideParticipantsProps) {
   const queryClient = useQueryClient();
@@ -113,33 +138,17 @@ export function RideParticipants({
       )}
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium">
-          Riders {approved.length > 0 && `(${approved.length})`}
-        </h3>
-        {approved.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No riders have joined yet.
-          </p>
-        ) : (
-          <ul className="flex flex-wrap gap-3">
-            {approved.map((participant) => (
-              <li
-                key={participant.id}
-                className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-1"
-              >
-                <Avatar className="size-6">
-                  <AvatarImage src={participant.user.image ?? undefined} />
-                  <AvatarFallback className="text-xs">
-                    {initials(participant.user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm">
-                  {participant.user.username ?? participant.user.name}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <h3 className="text-sm font-medium">Riders ({approved.length + 1})</h3>
+        <ul className="flex flex-wrap gap-2">
+          <li key={creator.id}>
+            <RiderChip user={creator} host />
+          </li>
+          {approved.map((participant) => (
+            <li key={participant.id}>
+              <RiderChip user={participant.user} />
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

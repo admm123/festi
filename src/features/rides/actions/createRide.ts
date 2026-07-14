@@ -6,6 +6,7 @@ import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
 import { prisma } from "@/lib/prisma";
 import { fetchRoute } from "../lib/brouter";
+import { reverseGeocode } from "../lib/geocode";
 import { createRideSchema } from "../schemas";
 
 type CreateRideResult =
@@ -31,7 +32,29 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     };
   }
 
-  const { title, description, startTime, waypoints, profile } = parsed.data;
+  const { title, description, startTime, startLocation, waypoints, profile } =
+    parsed.data;
+
+  // Only one ride per creator per calendar day.
+  const dayStart = new Date(startTime);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(startTime);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const existing = await prisma.ride.findFirst({
+    where: {
+      creatorId: session.user.id,
+      startTime: { gte: dayStart, lte: dayEnd },
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    return {
+      success: false,
+      error: "You already have a ride planned for that day.",
+    };
+  }
 
   let route: Awaited<ReturnType<typeof fetchRoute>>;
   try {
@@ -46,11 +69,20 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     };
   }
 
+  // Derive the start name from the final start coordinate so it stays accurate
+  // even if the user moved the start marker after searching. Falls back to the
+  // originally searched name if reverse geocoding is unavailable.
+  const start = waypoints[0];
+  const resolvedStartLocation =
+    (await reverseGeocode(start.lat, start.lng)) ??
+    (startLocation ? startLocation : null);
+
   const ride = await prisma.ride.create({
     data: {
       creatorId: session.user.id,
       title,
       description: description ? description : null,
+      startLocation: resolvedStartLocation,
       startTime,
       distance: route.distance,
       duration: route.duration,

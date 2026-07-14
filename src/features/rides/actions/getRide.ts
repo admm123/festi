@@ -53,6 +53,7 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     id: ride.id,
     title: ride.title,
     description: ride.description,
+    startLocation: ride.startLocation,
     startTime: ride.startTime.toISOString(),
     distance: ride.distance,
     duration: ride.duration,

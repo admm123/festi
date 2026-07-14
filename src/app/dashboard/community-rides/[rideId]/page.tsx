@@ -1,11 +1,12 @@
 import { format } from "date-fns";
-import { ArrowLeftIcon, CalendarIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireAuth } from "@/features/auth/guards";
 import { getRide } from "@/features/rides/actions/getRide";
+import { DeleteRideButton } from "@/features/rides/components/deleteRideButton";
 import { RideJoinButton } from "@/features/rides/components/rideJoinButton";
 import { RideParticipants } from "@/features/rides/components/rideParticipants";
 import { RoutePreview } from "@/features/rides/components/routePreview";
@@ -39,11 +40,14 @@ export default async function RideDetailPage({
             {format(new Date(ride.startTime), "EEEE, MMM d yyyy 'at' HH:mm")}
           </p>
         </div>
-        <RideJoinButton
-          rideId={ride.id}
-          isCreator={ride.isCreator}
-          participantStatus={ride.participantStatus}
-        />
+        <div className="flex items-center gap-2">
+          {ride.isCreator && <DeleteRideButton rideId={ride.id} />}
+          <RideJoinButton
+            rideId={ride.id}
+            isCreator={ride.isCreator}
+            participantStatus={ride.participantStatus}
+          />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -78,6 +82,13 @@ export default async function RideDetailPage({
             </Card>
           )}
 
+          {ride.startLocation && (
+            <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+              <MapPinIcon className="mt-0.5 size-4 shrink-0 text-green-500" />
+              <span>Starts at {ride.startLocation}</span>
+            </p>
+          )}
+
           <p className="text-sm text-muted-foreground">
             Created by{" "}
             <span className="text-foreground">
@@ -87,6 +98,7 @@ export default async function RideDetailPage({
 
           <RideParticipants
             isCreator={ride.isCreator}
+            creator={ride.creator}
             participants={ride.participants}
           />
         </div>

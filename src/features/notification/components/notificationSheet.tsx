@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellDot, UserPlus, Users } from "lucide-react";
+import { BellDot, Bike, Check, UserPlus, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,18 @@ function notificationText(notification: NotificationItem) {
       return notification.message
         ? `${name} joined your group "${notification.message}".`
         : `${name} joined your group.`;
+    case NotificationType.RIDE_JOIN_REQUEST:
+      return notification.message
+        ? `${name} asked to join your ride "${notification.message}".`
+        : `${name} asked to join your ride.`;
+    case NotificationType.RIDE_JOIN_APPROVED:
+      return notification.message
+        ? `${name} approved your request to join "${notification.message}".`
+        : `Your request to join the ride was approved.`;
+    case NotificationType.RIDE_JOIN_REJECTED:
+      return notification.message
+        ? `${name} declined your request to join "${notification.message}".`
+        : `Your request to join the ride was declined.`;
     default:
       return notification.message ?? "You have a new notification.";
   }
@@ -55,6 +67,15 @@ function notificationText(notification: NotificationItem) {
 function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
   if (type === NotificationType.GROUP_JOINED) {
     return <Users className="size-4 text-red-500" />;
+  }
+  if (type === NotificationType.RIDE_JOIN_REQUEST) {
+    return <Bike className="size-4 text-red-500" />;
+  }
+  if (type === NotificationType.RIDE_JOIN_APPROVED) {
+    return <Check className="size-4 text-green-500" />;
+  }
+  if (type === NotificationType.RIDE_JOIN_REJECTED) {
+    return <X className="size-4 text-red-500" />;
   }
   return <UserPlus className="size-4 text-red-500" />;
 }

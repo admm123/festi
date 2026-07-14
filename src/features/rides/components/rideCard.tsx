@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { BikeIcon, ClockIcon, MountainIcon } from "lucide-react";
+import { BikeIcon, ClockIcon, MapPinIcon, MountainIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -50,6 +50,13 @@ export function RideCard({ ride }: RideCardProps) {
             {formatDuration(ride.duration)}
           </span>
         </div>
+
+        {ride.startLocation && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <MapPinIcon className="mt-0.5 size-3.5 shrink-0 text-green-500" />
+            <span className="line-clamp-1">{ride.startLocation}</span>
+          </p>
+        )}
 
         <p className="text-xs text-muted-foreground">
           Created by {ride.creator.username ?? ride.creator.name}

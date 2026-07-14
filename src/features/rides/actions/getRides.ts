@@ -39,6 +39,7 @@ export async function getRides(): Promise<RideSummary[]> {
     id: ride.id,
     title: ride.title,
     description: ride.description,
+    startLocation: ride.startLocation,
     startTime: ride.startTime.toISOString(),
     distance: ride.distance,
     duration: ride.duration,

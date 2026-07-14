@@ -10,57 +10,64 @@ async function main() {
 
   console.log("🌱 Starting seed...");
 
-  // Create admin user
-  const adminPassword = await hashPassword("admin123");
-
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@festi.com" },
-    update: {},
-    create: {
-      id: crypto.randomUUID(),
-      name: "Admin User",
-      email: "admin@festi.com",
-      emailVerified: true,
-      role: "admin",
-      banned: false,
-      accounts: {
-        create: {
-          id: crypto.randomUUID(),
-          accountId: crypto.randomUUID(),
-          providerId: "credential",
-          password: adminPassword,
-        },
+  /**
+   * Idempotently ensures a user with a credential account exists. Safe to run
+   * on every deploy: existing users/accounts are left untouched, and a missing
+   * credential account is created (self-healing) without ever duplicating rows.
+   */
+  async function ensureUser(opts: {
+    name: string;
+    email: string;
+    role: string;
+    password: string;
+  }) {
+    const user = await prisma.user.upsert({
+      where: { email: opts.email },
+      update: {},
+      create: {
+        id: crypto.randomUUID(),
+        name: opts.name,
+        email: opts.email,
+        emailVerified: true,
+        role: opts.role,
+        banned: false,
       },
-    },
-  });
+    });
 
-  console.log("✅ Created admin user:", admin.email);
+    const existingAccount = await prisma.account.findFirst({
+      where: { userId: user.id, providerId: "credential" },
+    });
 
-  // Create a sample normal user
-  const userPassword = await hashPassword("user1234");
-
-  const user = await prisma.user.upsert({
-    where: { email: "rider@festi.com" },
-    update: {},
-    create: {
-      id: crypto.randomUUID(),
-      name: "Alex Rider",
-      email: "rider@festi.com",
-      emailVerified: true,
-      role: "user",
-      banned: false,
-      accounts: {
-        create: {
+    if (!existingAccount) {
+      await prisma.account.create({
+        data: {
           id: crypto.randomUUID(),
-          accountId: crypto.randomUUID(),
+          accountId: user.id,
           providerId: "credential",
-          password: userPassword,
+          userId: user.id,
+          password: await hashPassword(opts.password),
         },
-      },
-    },
-  });
+      });
+    }
 
-  console.log("✅ Created sample user:", user.email);
+    return user;
+  }
+
+  const admin = await ensureUser({
+    name: "Admin User",
+    email: "admin@festi.com",
+    role: "admin",
+    password: "admin123",
+  });
+  console.log("✅ Ensured admin user:", admin.email);
+
+  const user = await ensureUser({
+    name: "Alex Rider",
+    email: "rider@festi.com",
+    role: "user",
+    password: "user1234",
+  });
+  console.log("✅ Ensured sample user:", user.email);
 
   console.log("\n📋 Test credentials:");
   console.log("Admin: admin@festi.com / admin123");

@@ -42,7 +42,7 @@ export default async function DashboardLayout({
 
         <main className="flex-1 p-6">
           {" "}
-          <GoBack className="mb-4" />
+         
           {children}
         </main>
       </SidebarInset>

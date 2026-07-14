@@ -34,6 +34,12 @@ export const createRideSchema = z.object({
   startTime: z.coerce.date().refine((date) => date.getTime() > Date.now(), {
     message: "Start time must be in the future.",
   }),
+  startLocation: z
+    .string()
+    .trim()
+    .max(200, "Start location is too long.")
+    .optional()
+    .or(z.literal("")),
   waypoints: z
     .array(waypointSchema)
     .min(2, "Add at least two points to build a route.")
