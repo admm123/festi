@@ -42,7 +42,7 @@ export const auth = betterAuth({
     autoSignIn: false,
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
-      void sendEmail({
+      await sendEmail({
         to: user.email,
         subject: "Reset your password - Festi",
         html: getPasswordResetEmailHtml(url, user.name),
@@ -63,7 +63,7 @@ export const auth = betterAuth({
     // Notify the real account owner when someone tries to sign up with their
     // email (part of the email enumeration protection flow).
     onExistingUserSignUp: async ({ user }) => {
-      void sendEmail({
+      await sendEmail({
         to: user.email,
         subject: "Someone tried to sign up with your email - Festi",
         html: getExistingAccountEmailHtml(user.name),
@@ -82,7 +82,7 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
-      void sendEmail({
+      await sendEmail({
         to: user.email,
         subject: "Verify your email - Festi",
         html: getVerificationEmailHtml(url, user.name),
