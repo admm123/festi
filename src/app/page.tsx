@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ParticleBackground } from "@/components/particleBackground";
+import { TypedHeadline } from "@/components/typedHeadline";
+import { CookieConsent } from "@/components/cookieConsent";
+import { SiteFooter } from "@/components/siteFooter";
 
 export default function HomePage() {
   return (
@@ -14,12 +17,7 @@ export default function HomePage() {
       <ParticleBackground />
 
       <div className="relative mx-auto max-w-4xl px-4 text-center">
-        <h1 className="whitespace-nowrap text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-          Plan. Connect.{" "}
-          <span className="bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
-            Ride.
-          </span>
-        </h1>
+        <TypedHeadline />
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
           Your all-in-one platform for cyclists. Plan new rides, connect with
           fellow riders, and explore new routes.
@@ -42,6 +40,10 @@ export default function HomePage() {
           </Button>
         </div>
       </div>
+
+      <SiteFooter className="absolute inset-x-0 bottom-0 z-10 mx-auto max-w-4xl px-4 pb-6" />
+
+      <CookieConsent />
     </section>
   );
 }

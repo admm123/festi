@@ -1,13 +1,26 @@
-import { UserIcon } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { requireAuth } from "@/features/auth/guards";
+import { AvatarUploader } from "@/features/users/components/avatarUploader";
+import { ProfileFollowStats } from "@/features/users/components/profileFollowStats";
+import { prisma } from "@/lib/prisma";
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const session = await requireAuth();
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      name: true,
+      username: true,
+      email: true,
+      image: true,
+      _count: { select: { followers: true, following: true } },
+    },
+  });
+
+  const name = user?.name ?? session.user.name;
+  const followersCount = user?._count.followers ?? 0;
+  const followingCount = user?._count.following ?? 0;
+
   return (
     <div className="space-y-8">
       <div>
@@ -15,21 +28,21 @@ export default function ProfilePage() {
         <p className="text-muted-foreground">Manage your public profile</p>
       </div>
 
-      <Card className="border-red-500/20">
-        <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
-          <CardDescription>Customize how others see you</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <UserIcon className="mb-4 size-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">Profile editor coming soon</p>
-            <p className="text-sm text-muted-foreground">
-              Update your avatar, bio, and social links
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+        <AvatarUploader name={name} image={user?.image ?? null} />
+
+        <div className="space-y-1">
+          <p className="text-2xl font-semibold">{name}</p>
+          {user?.username ? (
+            <p className="text-muted-foreground">@{user.username}</p>
+          ) : null}
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
+          <ProfileFollowStats
+            followersCount={followersCount}
+            followingCount={followingCount}
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { deleteObject } from "@/lib/r2";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
 
@@ -35,6 +36,13 @@ export async function deleteGroup(groupId: string) {
   await prisma.group.delete({
     where: { id: groupId },
   });
+
+  // Best-effort cleanup of the cover image; never block deletion on storage.
+  try {
+    await deleteObject(`groups/${groupId}/cover.webp`);
+  } catch (error) {
+    console.error("[deleteGroup] Failed to delete R2 image:", error);
+  }
 
   revalidatePath("/groups");
 

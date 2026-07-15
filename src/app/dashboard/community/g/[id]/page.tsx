@@ -118,6 +118,7 @@ export default async function GroupPage({
               currentName={group.name}
               currentDescription={group.description}
               currentNeedApproval={group.needApproval}
+              currentImage={group.image}
             />
           </div>
         )}
