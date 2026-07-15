@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ZapIcon,
   HomeIcon,
   BikeIcon,
   UsersIcon,
@@ -14,6 +13,7 @@ import {
   UserIcon,
   BellIcon,
 } from "lucide-react";
+import { Logo } from "@/components/logo";
 import {
   Sidebar,
   SidebarContent,
@@ -106,10 +106,8 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
     <Sidebar className="border-r border-red-500/20">
       {/* Header */}
       <SidebarHeader className="border-b border-red-500/20 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-red-700">
-            <ZapIcon className="size-4 text-white" />
-          </div>
+        <div className="flex items-center gap-3">
+          <Logo size={56} className="size-14" priority />
           <span className="text-xl font-bold tracking-tight">FESTI</span>
           {isAdmin && (
             <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-500">

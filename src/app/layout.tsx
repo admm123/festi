@@ -14,6 +14,30 @@ export const metadata: Metadata = {
   title: "Festi - Your Cycling Community",
   description:
     "Plan rides, connect with cyclists, and explore new routes together.",
+  icons: {
+    icon: [
+      { url: "/logo.ico" },
+      {
+        url: "/logo-original-black.png",
+        media: "(prefers-color-scheme: light)",
+        type: "image/png",
+      },
+      {
+        url: "/logo-original-white.png",
+        media: "(prefers-color-scheme: dark)",
+        type: "image/png",
+      },
+    ],
+    shortcut: "/logo.ico",
+    apple: "/logo-original-white.png",
+  },
+  openGraph: {
+    title: "Festi - Your Cycling Community",
+    description:
+      "Plan rides, connect with cyclists, and explore new routes together.",
+    images: ["/logo-original-white.png"],
+    type: "website",
+  },
 };
 
 export default function RootLayout({

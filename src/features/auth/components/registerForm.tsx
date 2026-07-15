@@ -6,13 +6,13 @@ import {
   ArrowLeftIcon,
   Loader2Icon,
   MailCheckIcon,
-  ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { ParticleBackground } from "@/components/particleBackground";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -150,8 +150,8 @@ export function RegisterForm() {
 
       <Card className="relative w-full max-w-md border-red-500/20 backdrop-blur-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-700">
-            <ZapIcon className="size-6 text-white" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <Logo size={96} priority className="size-24" />
           </div>
           <CardTitle className="text-2xl">Create your account</CardTitle>
           <CardDescription>Join the cycling community today</CardDescription>
