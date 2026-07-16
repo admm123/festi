@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ParticleBackground } from "@/components/particleBackground";
-import { TypedHeadline } from "@/components/typedHeadline";
 import { CookieConsent } from "@/components/cookieConsent";
+import { ParticleBackground } from "@/components/particleBackground";
 import { SiteFooter } from "@/components/siteFooter";
+import { TypedHeadline } from "@/components/typedHeadline";
+import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (

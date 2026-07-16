@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { getCurrentAdmin } from "@/features/auth/guards";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function unbanUser(userId: string) {
   const session = await getCurrentAdmin();

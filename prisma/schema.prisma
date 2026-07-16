@@ -46,6 +46,10 @@ model User {
   rides              Ride[]            @relation("RideCreator")
   rideParticipations RideParticipant[]
 
+  posts Post[] @relation("PostAuthor")
+  postLikes    PostLike[]
+  postComments PostComment[]
+
   @@unique([email])
   @@map("user")
 }
@@ -241,6 +245,7 @@ enum ActivityAction {
   RIDE_JOIN_REQUESTED
   RIDE_JOIN_APPROVED
   RIDE_JOIN_REJECTED
+  POST_CREATED
   OTHER
 }
 
@@ -305,10 +310,24 @@ model Ride {
 
   creator      User              @relation("RideCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   participants RideParticipant[]
+  photos       RidePhoto[]
 
   @@index([creatorId])
   @@index([startTime])
   @@map("ride")
+}
+
+model RidePhoto {
+  id        String   @id @default(cuid())
+  rideId    String
+  url       String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId])
+  @@map("ride_photo")
 }
 
 model RideParticipant {
@@ -326,4 +345,65 @@ model RideParticipant {
   @@index([rideId])
   @@index([userId])
   @@map("ride_participant")
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User        @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  images PostImage[]
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("post")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_like")
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@map("post_comment")
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  postId    String
+  url       String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_image")
 }

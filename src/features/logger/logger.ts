@@ -1,9 +1,8 @@
 import "server-only";
 
 import { headers } from "next/headers";
-
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma/client";
 
 /** Every activity we can log. Keep in sync with the Prisma `ActivityAction` enum. */
 export const ActivityAction = {
@@ -33,6 +32,7 @@ export const ActivityAction = {
   RIDE_JOIN_REQUESTED: "RIDE_JOIN_REQUESTED",
   RIDE_JOIN_APPROVED: "RIDE_JOIN_APPROVED",
   RIDE_JOIN_REJECTED: "RIDE_JOIN_REJECTED",
+  POST_CREATED: "POST_CREATED",
   OTHER: "OTHER",
 } as const;
 

@@ -93,7 +93,10 @@ export function DirectChatThread({ partnerId }: { partnerId: string }) {
       <div className="flex items-center gap-3 border-b p-3">
         <div className="relative">
           <Avatar className="size-9">
-            <AvatarImage src={partner?.image ?? undefined} alt={partner?.name} />
+            <AvatarImage
+              src={partner?.image ?? undefined}
+              alt={partner?.name}
+            />
             <AvatarFallback>
               {partner?.name?.slice(0, 2).toUpperCase() ?? "?"}
             </AvatarFallback>

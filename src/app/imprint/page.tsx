@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Imprint - Festi",
@@ -93,11 +93,12 @@ export default function ImprintPage() {
                 any liability for this third-party content. The respective
                 provider or operator of the pages is always responsible for the
                 content of the linked pages. The linked pages were checked for
-                possible legal violations at the time of linking. Illegal content
-                was not identifiable at the time of linking. A permanent content
-                control of the linked pages is, however, not reasonable without
-                concrete indications of an infringement. If we become aware of
-                any infringements, we will remove such links immediately.
+                possible legal violations at the time of linking. Illegal
+                content was not identifiable at the time of linking. A permanent
+                content control of the linked pages is, however, not reasonable
+                without concrete indications of an infringement. If we become
+                aware of any infringements, we will remove such links
+                immediately.
               </p>
             </div>
 

@@ -47,9 +47,7 @@ export function CreateGroupDialog() {
     });
   };
 
-  const handleImage = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -102,7 +100,9 @@ export function CreateGroupDialog() {
         const imageResult = await uploadGroupImage(result.groupId, formData);
         if (!imageResult.success) {
           // Group was created; surface the image problem without failing.
-          toast.warning(`Group created, but image failed: ${imageResult.error}`);
+          toast.warning(
+            `Group created, but image failed: ${imageResult.error}`,
+          );
         }
       }
 

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service - Festi",
@@ -33,10 +33,10 @@ export default function TermsOfServicePage() {
 
         <Section title="1. Scope and Provider">
           <p>
-            These Terms of Service ("Terms") govern the use of the Festi platform
-            ("Service"), operated by [Operator name], [Address], Germany ("we",
-            "us"). By creating an account or using the Service, you agree to
-            these Terms.
+            These Terms of Service ("Terms") govern the use of the Festi
+            platform ("Service"), operated by [Operator name], [Address],
+            Germany ("we", "us"). By creating an account or using the Service,
+            you agree to these Terms.
           </p>
         </Section>
 
@@ -95,8 +95,8 @@ export default function TermsOfServicePage() {
           <p>
             Rides, routes, and meeting points are created by users. Cycling
             involves inherent risks. You participate at your own risk, are
-            responsible for your own safety and compliance with traffic laws, and
-            we do not organise, supervise, or guarantee any ride or route.
+            responsible for your own safety and compliance with traffic laws,
+            and we do not organise, supervise, or guarantee any ride or route.
           </p>
         </Section>
 
@@ -119,18 +119,19 @@ export default function TermsOfServicePage() {
         <Section title="9. Liability">
           <p>
             We are liable without limitation for intent and gross negligence and
-            for damages arising from injury to life, body, or health. For
-            slight negligence, we are only liable for breach of a material
-            contractual obligation (cardinal obligation), limited to the
-            foreseeable, typical damage. Any further liability is excluded to the
-            extent permitted by law. Mandatory statutory liability, including
-            under the German Product Liability Act, remains unaffected.
+            for damages arising from injury to life, body, or health. For slight
+            negligence, we are only liable for breach of a material contractual
+            obligation (cardinal obligation), limited to the foreseeable,
+            typical damage. Any further liability is excluded to the extent
+            permitted by law. Mandatory statutory liability, including under the
+            German Product Liability Act, remains unaffected.
           </p>
         </Section>
 
         <Section title="10. Privacy">
           <p>
-            Information about how we process your personal data is set out in our{" "}
+            Information about how we process your personal data is set out in
+            our{" "}
             <Link href="/privacy" className="text-red-500 hover:text-red-400">
               Privacy Policy
             </Link>
@@ -150,9 +151,9 @@ export default function TermsOfServicePage() {
           <p>
             These Terms are governed by the laws of the Federal Republic of
             Germany, excluding the UN Convention on Contracts for the
-            International Sale of Goods. Mandatory consumer protection provisions
-            of your country of residence remain unaffected. Where permitted, the
-            place of jurisdiction is our registered seat.
+            International Sale of Goods. Mandatory consumer protection
+            provisions of your country of residence remain unaffected. Where
+            permitted, the place of jurisdiction is our registered seat.
           </p>
         </Section>
 

@@ -1,10 +1,10 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { type MessageFormData, MessageSchema } from "../schemas";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { prisma } from "@/lib/prisma";
+import { type MessageFormData, MessageSchema } from "../schemas";
 
 export async function getGroupMessages(groupId: string) {
   const session = await getCurrentUser();

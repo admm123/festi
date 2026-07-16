@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { type GroupFormData, groupFormSchema } from "../schemas";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { prisma } from "@/lib/prisma";
+import { type GroupFormData, groupFormSchema } from "../schemas";
 
 export async function createGroup(input: GroupFormData) {
   const session = await getCurrentUser();

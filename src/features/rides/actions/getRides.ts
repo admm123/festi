@@ -30,7 +30,10 @@ export async function getRides(): Promise<RideSummary[]> {
         select: { status: true },
       },
       _count: {
-        select: { participants: { where: { status: "APPROVED" } } },
+        select: {
+          participants: { where: { status: "APPROVED" } },
+          photos: true,
+        },
       },
     },
   });
@@ -52,5 +55,6 @@ export async function getRides(): Promise<RideSummary[]> {
     participantCount: ride._count.participants,
     isCreator: ride.creatorId === session.user.id,
     participantStatus: ride.participants[0]?.status ?? null,
+    photoCount: ride._count.photos,
   }));
 }

@@ -1,12 +1,12 @@
 "use client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getRider, Rider } from "../actions/getRider";
 import { useQuery } from "@tanstack/react-query";
-import { notFound, useParams } from "next/navigation";
 import { BadgeCheck } from "lucide-react";
-import NotFoundComponent from "@/components/notFoundComponent";
+import { notFound, useParams } from "next/navigation";
 import { ErrorComponent } from "@/components/errorComponent";
 import LoadingComponent from "@/components/loadingComponent";
+import NotFoundComponent from "@/components/notFoundComponent";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getRider, type Rider } from "../actions/getRider";
 import FollowRiderButton from "./followRiderButton";
 
 const UserMainComponent = () => {

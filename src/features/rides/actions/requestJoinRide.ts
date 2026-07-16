@@ -24,11 +24,15 @@ export async function requestJoinRide(
 
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
-    select: { id: true, title: true, creatorId: true },
+    select: { id: true, title: true, creatorId: true, startTime: true },
   });
 
   if (!ride) {
     return { success: false, error: "Ride not found." };
+  }
+
+  if (ride.startTime.getTime() < Date.now()) {
+    return { success: false, error: "This ride has already taken place." };
   }
 
   if (ride.creatorId === session.user.id) {

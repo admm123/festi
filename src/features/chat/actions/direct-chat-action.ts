@@ -1,9 +1,9 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth/guards";
+import { isOnline } from "@/features/followers/lib/presence";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
-import { isOnline } from "@/features/followers/lib/presence";
 import { prisma } from "@/lib/prisma";
 import { type DirectMessageFormData, DirectMessageSchema } from "../schemas";
 
@@ -142,7 +142,10 @@ export async function getDirectConversations(): Promise<DirectConversation[]> {
         unreadCount: unreadByPartner.get(partnerId) ?? 0,
       } satisfies DirectConversation;
     })
-    .filter((conversation): conversation is DirectConversation => conversation !== null);
+    .filter(
+      (conversation): conversation is DirectConversation =>
+        conversation !== null,
+    );
 }
 
 export type DirectMessagesResult = {

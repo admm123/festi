@@ -2,17 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import {
-  ArrowLeftIcon,
-  Loader2Icon,
-  MailCheckIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, Loader2Icon, MailCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ParticleBackground } from "@/components/particleBackground";
 import { Logo } from "@/components/logo";
+import { ParticleBackground } from "@/components/particleBackground";
 import { Button } from "@/components/ui/button";
 import {
   Card,

@@ -66,3 +66,6 @@ export const rideFormSchema = z.object({
 });
 
 export type RideFormValues = z.infer<typeof rideFormSchema>;
+
+/** Maximum number of after-ride photos an owner can attach. */
+export const MAX_RIDE_PHOTOS = 3;

@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { SearchIcon, UsersIcon } from "lucide-react";
+import { Loader2Icon, PlusIcon, SearchIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -12,8 +12,12 @@ import { getGroups } from "../actions/getGroups";
 import type { Group } from "../types";
 import { GroupJoinButton } from "./groupJoinButton";
 
+const PAGE_SIZE = 5;
+
 export function GroupsGrid() {
   const [search, setSearch] = useState("");
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const {
     data: groups = [],
@@ -32,9 +36,25 @@ export function GroupsGrid() {
     return groups.filter((group) =>
       [group.name, group.createdBy.name]
         .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(query)),
+        .some((value) => (value ?? "").toLowerCase().includes(query)),
     );
   }, [groups, search]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on search change
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [search]);
+
+  const shownGroups = filteredGroups.slice(0, visible);
+  const hasMore = filteredGroups.length > visible;
+
+  const loadMore = () => {
+    setLoadingMore(true);
+    setTimeout(() => {
+      setVisible((v) => v + PAGE_SIZE);
+      setLoadingMore(false);
+    }, 400);
+  };
 
   if (isLoading)
     return <p className="text-sm text-muted-foreground">Loading groups...</p>;
@@ -63,33 +83,57 @@ export function GroupsGrid() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredGroups.map((group) => (
-            <Link key={group.id} href={`/dashboard/community/g/${group.id}`}>
-              <Card className="transition hover:border-red-500/40 hover:bg-muted/40">
-                <CardContent className="flex items-center gap-4 p-4">
-                  <Avatar className="size-12">
-                    <AvatarImage src={group.image ?? undefined} sizes="" />
-                    <AvatarFallback>
-                      <UsersIcon className="size-5" />
-                    </AvatarFallback>
-                  </Avatar>
+          {shownGroups.map((group, index) => (
+            <div
+              key={group.id}
+              className="duration-500 animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
+              style={{ animationDelay: `${(index % PAGE_SIZE) * 60}ms` }}
+            >
+              <Link href={`/dashboard/community/g/${group.id}`}>
+                <Card className="h-full transition hover:border-red-500/40 hover:bg-muted/40">
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <Avatar className="size-12">
+                      <AvatarImage src={group.image ?? undefined} sizes="" />
+                      <AvatarFallback>
+                        <UsersIcon className="size-5" />
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{group.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{group.name}</p>
 
-                    <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                      <p>
-                        👥 {group.memberCount}{" "}
-                        {group.memberCount === 1 ? "member" : "members"}
-                      </p>
-                      <p>👤 Created by {group.createdBy.name}</p>
+                      <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                        <p>
+                          👥 {group.memberCount}{" "}
+                          {group.memberCount === 1 ? "member" : "members"}
+                        </p>
+                        <p>👤 Created by {group.createdBy.name}</p>
+                      </div>
                     </div>
-                  </div>
-                  <GroupJoinButton group={group} />
-                </CardContent>
-              </Card>
-            </Link>
+                    <GroupJoinButton group={group} />
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
           ))}
+
+          {hasMore && (
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="group flex min-h-[84px] items-center justify-center rounded-xl border border-dashed border-red-500/30 text-sm font-medium text-muted-foreground transition hover:border-red-500/50 hover:bg-muted/40 hover:text-foreground"
+            >
+              <span className="flex items-center gap-2">
+                {loadingMore ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <PlusIcon className="size-4 transition-transform group-hover:scale-110" />
+                )}
+                {loadingMore ? "Loading…" : "Load more"}
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>

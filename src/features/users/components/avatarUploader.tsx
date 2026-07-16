@@ -4,11 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CameraIcon, Loader2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { sessionQueryKey } from "@/features/auth/hooks/use-session";
 import { uploadAvatar } from "@/features/users/actions/uploadAvatar";
 import { processImageToWebp } from "@/lib/imageProcessing";

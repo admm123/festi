@@ -1,12 +1,12 @@
 "use server";
 
 import { headers } from "next/headers";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
 import { auth } from "@/lib/auth";
 import { type RegisterFormData, registerSchema } from "../schemas";
 import { checkUsernameAvailable } from "./checkAvailability";
 import { validateEmailDomain } from "./validateEmail";
-import { Logger } from "@/features/logger";
-import { ActivityAction } from "@/features/logger/logger";
 
 /**
  * Single entry point for registration. Runs every check server-side in one

@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentAdmin } from "@/features/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { updateRoleSchema } from "../schemas";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { prisma } from "@/lib/prisma";
+import { updateRoleSchema } from "../schemas";
 
 export async function updateUserRole(userId: string, role: string) {
   const session = await getCurrentAdmin();

@@ -52,6 +52,7 @@ export type RideSummary = {
   participantCount: number;
   isCreator: boolean;
   participantStatus: RideParticipantStatus | null;
+  photoCount: number;
 };
 
 export type RideParticipantInfo = {
@@ -61,6 +62,13 @@ export type RideParticipantInfo = {
   user: RideCreator;
 };
 
+export type RidePhotoInfo = {
+  id: string;
+  url: string;
+  position: number;
+};
+
 export type RideDetail = RideSummary & {
   participants: RideParticipantInfo[];
+  photos: RidePhotoInfo[];
 };

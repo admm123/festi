@@ -9,6 +9,7 @@ import { getRide } from "@/features/rides/actions/getRide";
 import { DeleteRideButton } from "@/features/rides/components/deleteRideButton";
 import { RideJoinButton } from "@/features/rides/components/rideJoinButton";
 import { RideParticipants } from "@/features/rides/components/rideParticipants";
+import { RidePhotos } from "@/features/rides/components/ridePhotos";
 import { RoutePreview } from "@/features/rides/components/routePreview";
 import { RouteStatsPanel } from "@/features/rides/components/routeStatsPanel";
 
@@ -46,6 +47,7 @@ export default async function RideDetailPage({
             rideId={ride.id}
             isCreator={ride.isCreator}
             participantStatus={ride.participantStatus}
+            isPast={new Date(ride.startTime).getTime() < Date.now()}
           />
         </div>
       </div>
@@ -100,6 +102,15 @@ export default async function RideDetailPage({
             isCreator={ride.isCreator}
             creator={ride.creator}
             participants={ride.participants}
+          />
+
+          <RidePhotos
+            rideId={ride.id}
+            photos={ride.photos}
+            title={ride.title}
+            canManage={
+              ride.isCreator && new Date(ride.startTime).getTime() < Date.now()
+            }
           />
         </div>
       </div>

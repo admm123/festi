@@ -54,7 +54,10 @@ export async function getFollowConnections(): Promise<FollowConnections> {
   const followingUsers = followingRows.map((row) => row.following);
   const followerUsers = followerRows.map((row) => row.follower);
 
-  const toFollowUser = ({ lastSeenAt, ...user }: (typeof followingUsers)[number]): FollowUser => ({
+  const toFollowUser = ({
+    lastSeenAt,
+    ...user
+  }: (typeof followingUsers)[number]): FollowUser => ({
     ...user,
     isOnline: isOnline(lastSeenAt),
   });

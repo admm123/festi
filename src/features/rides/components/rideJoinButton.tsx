@@ -13,6 +13,7 @@ type RideJoinButtonProps = {
   rideId: string;
   isCreator: boolean;
   participantStatus: RideParticipantStatus | null;
+  isPast?: boolean;
   className?: string;
 };
 
@@ -20,6 +21,7 @@ export function RideJoinButton({
   rideId,
   isCreator,
   participantStatus,
+  isPast = false,
   className,
 }: RideJoinButtonProps) {
   const queryClient = useQueryClient();
@@ -71,6 +73,14 @@ export function RideJoinButton({
     return (
       <Badge variant="destructive" className={className}>
         Declined
+      </Badge>
+    );
+  }
+
+  if (isPast) {
+    return (
+      <Badge variant="outline" className={className}>
+        Ride ended
       </Badge>
     );
   }

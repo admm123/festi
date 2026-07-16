@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { deleteObject } from "@/lib/r2";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { prisma } from "@/lib/prisma";
+import { deleteObject } from "@/lib/r2";
 
 export async function deleteGroup(groupId: string) {
   const session = await getCurrentUser();

@@ -72,6 +72,7 @@ export function RideCard({ ride }: RideCardProps) {
           rideId={ride.id}
           isCreator={ride.isCreator}
           participantStatus={ride.participantStatus}
+          isPast={new Date(ride.startTime).getTime() < Date.now()}
         />
       </CardFooter>
     </Card>

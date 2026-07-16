@@ -14,9 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  getFollowConnections,
   type FollowConnections,
   type FollowUser,
+  getFollowConnections,
 } from "@/features/followers/actions/getFollowConnections";
 import {
   type DirectConversation,
@@ -80,7 +80,10 @@ function ConversationList({
         >
           <div className="relative shrink-0">
             <Avatar className="size-9">
-              <AvatarImage src={partner.image ?? undefined} alt={partner.name} />
+              <AvatarImage
+                src={partner.image ?? undefined}
+                alt={partner.name}
+              />
               <AvatarFallback>
                 {partner.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -262,7 +265,10 @@ export function DirectChatDialog({
 
         <section className="flex min-w-0 flex-1 flex-col">
           {activePartnerId ? (
-            <DirectChatThread key={activePartnerId} partnerId={activePartnerId} />
+            <DirectChatThread
+              key={activePartnerId}
+              partnerId={activePartnerId}
+            />
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
               Select a conversation or start a new message.

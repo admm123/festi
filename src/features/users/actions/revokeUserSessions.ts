@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { getCurrentAdmin } from "@/features/auth/guards";
-import { auth } from "@/lib/auth";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { auth } from "@/lib/auth";
 
 export async function revokeUserSessions(userId: string) {
   const session = await getCurrentAdmin();
