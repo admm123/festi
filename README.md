@@ -1,36 +1,272 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Festi
+
+Festi is a social platform built for cyclists. It lets riders plan group rides, share route-aware posts, join rider groups, follow each other, and stay in touch through direct and group messaging.
+
+The project is a modern [Next.js](https://nextjs.org) application that ships to [Cloudflare Workers](https://workers.cloudflare.com/) via [OpenNext](https://opennext.js.org/cloudflare), backed by PostgreSQL and Cloudflare R2 for media storage.
+
+---
+
+## Features
+
+- **Authentication & accounts**
+  - Email/password registration and sign-in with mandatory email verification.
+  - Forgot/reset password flows delivered through [Resend](https://resend.com/).
+  - Session management, role-based access (`user` / `admin`), and admin-initiated user bans.
+- **Rider profiles**
+  - Public profile with avatar upload, bio, location, bike details, skill level, riding styles, and years riding.
+  - Follow/unfollow riders with a real-time presence heartbeat.
+- **Social feed**
+  - Create posts with a markdown editor and image attachments.
+  - Like and comment on posts.
+  - "For You" timeline combining posts and community rides.
+- **Groups & chat**
+  - Create and join rider groups; owners can require approval for membership.
+  - Group chat available to members.
+  - Direct messaging between mutually-followed riders.
+- **Community rides**
+  - Plan rides with an interactive route planner.
+  - Route calculation through [BRouter](https://brouter.de/) with distance, duration, and elevation gain/loss.
+  - Visualize routes on [MapLibre GL](https://maplibre.org/) maps with elevation charts.
+  - Export routes as GPX; upload ride photos.
+  - Request to join rides; creators approve or reject participants.
+- **Notifications**
+  - In-app notifications for follows, group joins, and ride join requests/approvals/rejections.
+- **Admin dashboard**
+  - Activity analytics with time-series charts, top actors, recent activity, and anomaly warnings.
+  - User management table with role changes and bans.
+- **Audit logging**
+  - Comprehensive `ActivityLog` records for authentication, moderation, group, ride, and messaging events.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Framework | [Next.js 16](https://nextjs.org) (App Router) + [React 19](https://react.dev) |
+| Language | [TypeScript](https://www.typescriptlang.org/) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) |
+| ORM / Database | [Prisma 7](https://www.prisma.io/) + [PostgreSQL](https://www.postgresql.org/) |
+| Auth | [better-auth](https://www.better-auth.com/) with the admin plugin |
+| Server state | [TanStack Query](https://tanstack.com/query/latest) |
+| Forms | [react-hook-form](https://www.react-hook-form.com/) + [Zod](https://zod.dev/) |
+| Maps & Routing | [MapLibre GL](https://maplibre.org/) + [MapTiler](https://www.maptiler.com/) + [BRouter](https://brouter.de/) |
+| Images | Client-side canvas processing, server validation, Cloudflare R2 |
+| Email | [Resend](https://resend.com/) |
+| Deployment | [OpenNext Cloudflare](https://opennext.js.org/cloudflare) + [Wrangler](https://developers.cloudflare.com/workers/wrangler/) |
+| Linting / Formatting | [Biome](https://biomejs.dev/) |
+
+---
+
+## Architecture
+
+- **App Router**: pages are server components by default under `src/app/`. Async server actions live next to the features that use them.
+- **Feature folders**: `src/features/<domain>/` groups components, actions, schemas, types, and helpers per domain (e.g. `rides`, `posts`, `community`, `users`, `auth`, `analytics`).
+- **Server actions**: most mutations are implemented as Next.js server actions, guarded by `src/features/auth/guards.ts`.
+- **Auth**: the better-auth handler is mounted at `src/app/api/auth/[...all]/route.ts`. Client-side helpers are exported from `src/lib/auth-client.ts`.
+- **Database**: `src/lib/prisma.ts` builds a fresh Prisma client per request using the `@prisma/adapter-pg` driver. This avoids connection reuse issues on Cloudflare Workers.
+- **Media**: images are resized/encoded to WebP in the browser, validated server-side, and stored in Cloudflare R2 (`src/lib/r2.ts`).
+- **Maps**: MapTiler provides tiles and geocoding; BRouter computes cycling routes.
+- **Deployment**: OpenNext builds the app into `.open-next/`, and Wrangler serves static assets through the `ASSETS` binding.
+
+---
+
+## Project Structure
+
+```text
+.
+├── prisma/
+│   ├── schema.prisma        # Prisma data model
+│   ├── migrations/          # Migration history
+│   └── seed.ts              # Seed admin + sample user
+├── public/                  # Static assets / logos
+├── src/
+│   ├── app/                 # Next.js App Router pages
+│   │   ├── api/auth/[...all]/route.ts
+│   │   ├── dashboard/
+│   │   ├── login/
+│   │   ├── register/
+│   │   └── ...
+│   ├── components/          # Shared UI components (shadcn + custom)
+│   ├── components/ui/       # shadcn/ui primitives
+│   ├── features/            # Domain-driven feature modules
+│   │   ├── analytics/
+│   │   ├── auth/
+│   │   ├── chat/
+│   │   ├── community/
+│   │   ├── followers/
+│   │   ├── logger/
+│   │   ├── notification/
+│   │   ├── posts/
+│   │   ├── rides/
+│   │   └── users/
+│   ├── generated/prisma/    # Generated Prisma client (git-ignored)
+│   ├── hooks/               # Shared React hooks
+│   └── lib/                 # Cross-cutting utilities
+│       ├── auth.ts          # better-auth configuration
+│       ├── auth-client.ts   # Client auth client
+│       ├── prisma.ts        # Per-request Prisma client
+│       ├── email.ts         # Resend email helpers
+│       ├── image.ts         # Server-side image validation
+│       └── r2.ts            # Cloudflare R2 client
+├── biome.json               # Biome configuration
+├── components.json          # shadcn/ui configuration
+├── docker-compose.yaml      # Local Postgres + pgAdmin
+├── next.config.ts           # Next.js config
+├── open-next.config.ts      # OpenNext Cloudflare config
+├── postcss.config.mjs       # Tailwind v4 PostCSS setup
+├── prisma.config.ts         # Prisma CLI configuration
+└── wrangler.jsonc           # Wrangler / Cloudflare Workers settings
+```
+
+---
+
+## Database Schema Highlights
+
+- `User`, `Session`, `Account`, `Verification` – managed by better-auth; `User` has extra rider fields.
+- `Group` / `GroupMember` / `GroupMessage` – rider groups and their chats.
+- `DirectMessage` – mutual-follow direct messages.
+- `Follow` – follower/following relationships.
+- `Ride` / `RidePhoto` / `RideParticipant` – planned rides, photos, and join requests.
+- `Post` / `PostLike` / `PostComment` / `PostImage` – social feed.
+- `Notification` – in-app notifications.
+- `ActivityLog` – audit trail of platform events.
+
+---
+
+## Environment Variables
+
+Create `.env.local` (and/or `.env`) in the project root. The following variables are required or commonly used:
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string. |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL (e.g. `http://localhost:3000`). |
+| `BETTER_AUTH_SECRET` | Secret used by better-auth for token signing. |
+| `RESEND_API_KEY` | Resend API key for transactional emails. |
+| `EMAIL_FROM` | Verified sender address (defaults to Resend onboarding address locally). |
+| `NEXT_PUBLIC_MAPTILER_API_KEY` | MapTiler API key for maps and geocoding. |
+| `BROUTER_URL` | Optional custom BRouter instance (defaults to `https://brouter.de`). |
+| `R2_ACCOUNT_ID` | Cloudflare account ID for R2. |
+| `R2_ACCESS_KEY_ID` | R2 S3-compatible access key. |
+| `R2_SECRET_ACCESS_KEY` | R2 S3-compatible secret key. |
+| `R2_BUCKET_NAME` | R2 bucket name. |
+| `R2_PUBLIC_URL` | Public CDN/base URL for R2 objects. |
+
+> Do not commit secrets. This project ignores `.env*` files by default.
+
+For Cloudflare deployments, set sensitive values as Wrangler secrets:
+
+```bash
+wrangler secret put DATABASE_URL
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put RESEND_API_KEY
+# ... etc
+```
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (the project targets the LTS range used by Next.js 16)
+- A running PostgreSQL database (or use the provided Docker Compose file)
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Start the local database
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL on port `5432` and pgAdmin on port `5050`.
+
+### 3. Configure environment variables
+
+Create `.env.local` in the project root. At minimum set `DATABASE_URL` and `NEXT_PUBLIC_APP_URL`:
+
+```bash
+DATABASE_URL="postgresql://postgres:changeme@localhost:5432/database"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+### 4. Set up the database
+
+```bash
+npm run db:setup
+```
+
+This runs migrations and seeds the database.
+
+### 5. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Seeded test accounts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Email | Password | Role |
+| --- | --- | --- |
+| `admin@festi.com` | `admin123` | admin |
+| `rider@festi.com` | `user1234` | user |
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start Next.js in development mode. |
+| `npm run build` | Build the Next.js application. |
+| `npm run start` | Start the production server (Node). |
+| `npm run db:migrate` | Deploy Prisma migrations. |
+| `npm run db:seed` | Seed the database. |
+| `npm run db:setup` | Run migrations + seed. |
+| `npm run lint` | Run Biome checks. |
+| `npm run format` | Format code with Biome. |
+| `npm run preview` | Build and preview the Cloudflare Worker locally. |
+| `npm run deploy` | Build and deploy to Cloudflare Workers. |
+| `npm run cf-typegen` | Generate `cloudflare-env.d.ts` from Wrangler bindings. |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Festi is configured for Cloudflare Workers.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Make sure you have a Cloudflare account and [Wrangler](https://developers.cloudflare.com/workers/wrangler/install-and-update/) authenticated.
+2. Set all required secrets via `wrangler secret put`.
+3. Configure public vars in `wrangler.jsonc` if needed (e.g. `EMAIL_FROM`).
+4. Deploy:
+
+```bash
+npm run deploy
+```
+
+For a local production preview:
+
+```bash
+npm run preview
+```
+
+### Notes for production
+
+- Point `NEXT_PUBLIC_APP_URL` and `EMAIL_FROM` to your verified domain.
+- Verify your sender domain in Resend; otherwise emails are only delivered to your own account.
+- Use a dedicated R2 bucket with a public/custom domain for ride and post images.
+- Set `BETTER_AUTH_SECRET` to a strong, stable secret.
+
+---
+
+## License
+
+This project is private and not licensed for public use.
