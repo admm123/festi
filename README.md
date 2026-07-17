@@ -20,7 +20,7 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Like and comment on posts.
   - "For You" timeline combining posts and community rides.
 - **Groups & chat**
-  - Create and join rider groups; owners can require approval for membership.
+  - Create and join rider groups; owners can require approval for membership and manage pending join requests.
   - Group chat available to members.
   - Direct messaging between mutually-followed riders.
 - **Community rides**
@@ -29,6 +29,8 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Visualize routes on [MapLibre GL](https://maplibre.org/) maps with elevation charts.
   - Export routes as GPX; upload ride photos.
   - Request to join rides; creators approve or reject participants.
+  - Optional pace and difficulty labels, rider caps, and full lifecycle management: creators can edit details (approved riders are notified when the start time moves) or cancel a ride (all participants are notified); riders can leave rides, withdraw pending requests, and re-request after a rejection.
+  - Discover upcoming rides with text search and pace/difficulty filters.
 - **Notifications**
   - In-app notifications for follows, group joins, and ride join requests/approvals/rejections.
 - **Admin dashboard**
@@ -124,10 +126,10 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
 ## Database Schema Highlights
 
 - `User`, `Session`, `Account`, `Verification` – managed by better-auth; `User` has extra rider fields.
-- `Group` / `GroupMember` / `GroupMessage` – rider groups and their chats.
+- `Group` / `GroupMember` / `GroupMessage` – rider groups and their chats; `GroupMember.status` supports approval-gated membership (`PENDING` / `APPROVED`).
 - `DirectMessage` – mutual-follow direct messages.
 - `Follow` – follower/following relationships.
-- `Ride` / `RidePhoto` / `RideParticipant` – planned rides, photos, and join requests.
+- `Ride` / `RidePhoto` / `RideParticipant` – planned rides, photos, and join requests. Rides carry a lifecycle `status` (`SCHEDULED` / `CANCELLED`), an optional `maxParticipants` cap, and optional `pace` / `difficulty` labels.
 - `Post` / `PostLike` / `PostComment` / `PostImage` – social feed.
 - `Notification` – in-app notifications.
 - `ActivityLog` – audit trail of platform events.

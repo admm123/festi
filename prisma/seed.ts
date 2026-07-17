@@ -1,12 +1,18 @@
-import { PrismaPg } from "@prisma/adapter-pg";
+import crypto from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import "dotenv/config";
+import pg from "pg";
 
-// Use dynamic import for Prisma client since it's ESM
+/**
+ * NOTE: this seed intentionally talks to Postgres via `pg` directly instead of
+ * the generated Prisma client. The generated client targets the Cloudflare
+ * `workerd` runtime (WASM query compiler imported as `*.wasm?module`), which
+ * plain Node/tsx cannot load — so importing it here crashes with a LinkError.
+ * Raw SQL keeps `npm run db:setup` working in every environment.
+ */
 async function main() {
-  const { PrismaClient } = await import("../src/generated/prisma/client.js");
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-  const prisma = new PrismaClient({ adapter });
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
 
   console.log("🌱 Starting seed...");
 
@@ -21,36 +27,45 @@ async function main() {
     role: string;
     password: string;
   }) {
-    const user = await prisma.user.upsert({
-      where: { email: opts.email },
-      update: {},
-      create: {
-        id: crypto.randomUUID(),
-        name: opts.name,
-        email: opts.email,
-        emailVerified: true,
-        role: opts.role,
-        banned: false,
-      },
-    });
+    const existing = await client.query<{ id: string }>(
+      'SELECT id FROM "user" WHERE email = $1',
+      [opts.email],
+    );
 
-    const existingAccount = await prisma.account.findFirst({
-      where: { userId: user.id, providerId: "credential" },
-    });
-
-    if (!existingAccount) {
-      await prisma.account.create({
-        data: {
-          id: crypto.randomUUID(),
-          accountId: user.id,
-          providerId: "credential",
-          userId: user.id,
-          password: await hashPassword(opts.password),
-        },
-      });
+    let userId: string;
+    if (existing.rows.length > 0) {
+      userId = existing.rows[0].id;
+    } else {
+      userId = crypto.randomUUID();
+      await client.query(
+        `INSERT INTO "user"
+          (id, name, email, "emailVerified", role, banned, "ridingStyles", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, true, $4, false, '{}', now(), now())`,
+        [userId, opts.name, opts.email, opts.role],
+      );
     }
 
-    return user;
+    const existingAccount = await client.query(
+      'SELECT id FROM account WHERE "userId" = $1 AND "providerId" = $2',
+      [userId, "credential"],
+    );
+
+    if (existingAccount.rows.length === 0) {
+      await client.query(
+        `INSERT INTO account
+          (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, now(), now())`,
+        [
+          crypto.randomUUID(),
+          userId,
+          "credential",
+          userId,
+          await hashPassword(opts.password),
+        ],
+      );
+    }
+
+    return { id: userId, email: opts.email };
   }
 
   const admin = await ensureUser({
@@ -73,7 +88,7 @@ async function main() {
   console.log("Admin: admin@festi.com / admin123");
   console.log("User:  rider@festi.com / user1234");
 
-  await prisma.$disconnect();
+  await client.end();
 }
 
 main().catch((e) => {

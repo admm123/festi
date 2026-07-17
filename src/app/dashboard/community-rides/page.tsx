@@ -1,7 +1,7 @@
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { RidesGrid } from "@/features/rides/components/ridesGrid";
+import { RideFilters } from "@/features/rides/components/rideFilters";
 
 export default function RidesPage() {
   return (
@@ -21,7 +21,7 @@ export default function RidesPage() {
         </Button>
       </div>
 
-      <RidesGrid />
+      <RideFilters />
     </div>
   );
 }

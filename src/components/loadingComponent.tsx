@@ -6,7 +6,7 @@ export default function LoadingComponent() {
       <div className="flex max-w-md flex-col items-center">
         <div
           className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary"
-          aria-label="Loading"
+          aria-hidden="true"
         />
 
         <h2 className="mt-6 text-2xl font-medium text-foreground">Loading</h2>

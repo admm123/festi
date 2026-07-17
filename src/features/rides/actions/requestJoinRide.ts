@@ -24,11 +24,21 @@ export async function requestJoinRide(
 
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
-    select: { id: true, title: true, creatorId: true, startTime: true },
+    select: {
+      id: true,
+      title: true,
+      creatorId: true,
+      startTime: true,
+      status: true,
+    },
   });
 
   if (!ride) {
     return { success: false, error: "Ride not found." };
+  }
+
+  if (ride.status === "CANCELLED") {
+    return { success: false, error: "This ride has been cancelled." };
   }
 
   if (ride.startTime.getTime() < Date.now()) {
@@ -44,21 +54,28 @@ export async function requestJoinRide(
     select: { status: true },
   });
 
-  if (existing) {
-    const message =
-      existing.status === "REJECTED"
-        ? "Your previous request was declined."
-        : "You have already requested to join this ride.";
-    return { success: false, error: message };
+  if (existing && existing.status !== "REJECTED") {
+    return {
+      success: false,
+      error: "You have already requested to join this ride.",
+    };
   }
 
-  await prisma.rideParticipant.create({
-    data: {
-      rideId,
-      userId: session.user.id,
-      status: "PENDING",
-    },
-  });
+  if (existing) {
+    // A previously declined request can be asked again.
+    await prisma.rideParticipant.update({
+      where: { rideId_userId: { rideId, userId: session.user.id } },
+      data: { status: "PENDING" },
+    });
+  } else {
+    await prisma.rideParticipant.create({
+      data: {
+        rideId,
+        userId: session.user.id,
+        status: "PENDING",
+      },
+    });
+  }
 
   revalidatePath(`/dashboard/community-rides/${rideId}`);
 

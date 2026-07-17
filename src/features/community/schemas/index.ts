@@ -21,3 +21,13 @@ export const followUserFormSchema = z.object({
 });
 
 export type FollowUserFormData = z.infer<typeof followUserFormSchema>;
+
+export const respondToGroupJoinRequestSchema = z.object({
+  groupId: z.string().trim().min(1, "Group ID is required"),
+  memberId: z.string().trim().min(1, "Member ID is required"),
+  approve: z.boolean(),
+});
+
+export type RespondToGroupJoinRequestData = z.infer<
+  typeof respondToGroupJoinRequestSchema
+>;

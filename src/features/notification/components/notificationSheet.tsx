@@ -47,6 +47,24 @@ function notificationText(notification: NotificationItem) {
       return notification.message
         ? `${name} joined your group "${notification.message}".`
         : `${name} joined your group.`;
+    case NotificationType.GROUP_JOIN_REQUESTED:
+      return notification.message ?? `${name} requested to join your group.`;
+    case NotificationType.GROUP_JOIN_APPROVED:
+      return (
+        notification.message ?? `Your request to join the group was approved.`
+      );
+    case NotificationType.GROUP_JOIN_REJECTED:
+      return (
+        notification.message ?? `Your request to join the group was declined.`
+      );
+    case NotificationType.RIDE_UPDATED:
+      return notification.message
+        ? `The ride "${notification.message}" was updated — check the new details.`
+        : `A ride you joined was updated.`;
+    case NotificationType.RIDE_CANCELLED:
+      return notification.message
+        ? `The ride "${notification.message}" was cancelled.`
+        : `A ride you joined was cancelled.`;
     case NotificationType.RIDE_JOIN_REQUEST:
       return notification.message
         ? `${name} asked to join your ride "${notification.message}".`
@@ -65,17 +83,30 @@ function notificationText(notification: NotificationItem) {
 }
 
 function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
-  if (type === NotificationType.GROUP_JOINED) {
+  if (
+    type === NotificationType.GROUP_JOINED ||
+    type === NotificationType.GROUP_JOIN_REQUESTED
+  ) {
     return <Users className="size-4 text-red-500" />;
   }
-  if (type === NotificationType.RIDE_JOIN_REQUEST) {
-    return <Bike className="size-4 text-red-500" />;
-  }
-  if (type === NotificationType.RIDE_JOIN_APPROVED) {
+  if (
+    type === NotificationType.GROUP_JOIN_APPROVED ||
+    type === NotificationType.RIDE_JOIN_APPROVED
+  ) {
     return <Check className="size-4 text-green-500" />;
   }
-  if (type === NotificationType.RIDE_JOIN_REJECTED) {
+  if (
+    type === NotificationType.GROUP_JOIN_REJECTED ||
+    type === NotificationType.RIDE_JOIN_REJECTED ||
+    type === NotificationType.RIDE_CANCELLED
+  ) {
     return <X className="size-4 text-red-500" />;
+  }
+  if (
+    type === NotificationType.RIDE_JOIN_REQUEST ||
+    type === NotificationType.RIDE_UPDATED
+  ) {
+    return <Bike className="size-4 text-red-500" />;
   }
   return <UserPlus className="size-4 text-red-500" />;
 }

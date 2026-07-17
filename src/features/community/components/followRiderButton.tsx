@@ -40,7 +40,7 @@ const FollowRiderButton = ({
       toast.success(data.message);
     },
 
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error?.message ?? "An error occurred");
     },
   });
@@ -66,7 +66,7 @@ const FollowRiderButton = ({
       toast.success(data.message);
     },
 
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error?.message ?? "An error occurred");
     },
   });

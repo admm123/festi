@@ -20,19 +20,31 @@ export async function getGroups() {
       members: {
         select: {
           userId: true,
+          status: true,
         },
       },
     },
   });
 
-  return groups.map((group) => ({
-    id: group.id,
-    name: group.name,
-    image: group.image,
-    createdAt: group.createdAt.toISOString(),
-    memberCount: group.members.length,
-    createdBy: group.createdBy,
-    isOwner: group.createdById === session.user.id,
-    isMember: group.members.some((member) => member.userId === session.user.id),
-  }));
+  return groups.map((group) => {
+    const approvedMembers = group.members.filter(
+      (member) => member.status === "APPROVED",
+    );
+    const ownMembership = group.members.find(
+      (member) => member.userId === session.user.id,
+    );
+
+    return {
+      id: group.id,
+      name: group.name,
+      image: group.image,
+      createdAt: group.createdAt.toISOString(),
+      memberCount: approvedMembers.length,
+      createdBy: group.createdBy,
+      isOwner: group.createdById === session.user.id,
+      isMember: ownMembership?.status === "APPROVED",
+      membershipStatus: ownMembership?.status ?? null,
+      needApproval: group.needApproval,
+    };
+  });
 }

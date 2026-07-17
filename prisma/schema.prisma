@@ -96,12 +96,18 @@ model Group {
   @@map("group")
 }
 
+enum GroupMemberStatus {
+  PENDING
+  APPROVED
+}
+
 model GroupMember {
-  id        String   @id @default(cuid())
+  id        String            @id @default(cuid())
   userId    String
   groupId   String
-  role      String   @default("member")
-  createdAt DateTime @default(now())
+  role      String            @default("member")
+  status    GroupMemberStatus @default(APPROVED)
+  createdAt DateTime          @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -205,9 +211,14 @@ model Notification {
 enum NotificationType {
   USER_FOLLOWED
   GROUP_JOINED
+  GROUP_JOIN_REQUESTED
+  GROUP_JOIN_APPROVED
+  GROUP_JOIN_REJECTED
   RIDE_JOIN_REQUEST
   RIDE_JOIN_APPROVED
   RIDE_JOIN_REJECTED
+  RIDE_UPDATED
+  RIDE_CANCELLED
 }
 
 model Follow {
@@ -249,9 +260,15 @@ enum ActivityAction {
   GROUP_MESSAGE_SENT
   DIRECT_MESSAGE_SENT
   RIDE_CREATED
+  RIDE_UPDATED
+  RIDE_CANCELLED
   RIDE_JOIN_REQUESTED
   RIDE_JOIN_APPROVED
   RIDE_JOIN_REJECTED
+  RIDE_JOIN_WITHDRAWN
+  RIDE_LEFT
+  GROUP_JOIN_REQUESTED
+  GROUP_MEMBER_REJECTED
   POST_CREATED
   OTHER
 }
@@ -299,6 +316,11 @@ enum RideParticipantStatus {
   REJECTED
 }
 
+enum RideStatus {
+  SCHEDULED
+  CANCELLED
+}
+
 model Ride {
   id            String   @id @default(cuid())
   creatorId     String
@@ -313,6 +335,10 @@ model Ride {
   routeGeometry String
   waypoints     Json
   elevationProfile Json?
+  status        RideStatus @default(SCHEDULED)
+  maxParticipants Int?
+  pace          String?
+  difficulty    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -322,6 +348,7 @@ model Ride {
 
   @@index([creatorId])
   @@index([startTime])
+  @@index([status, startTime])
   @@map("ride")
 }
 

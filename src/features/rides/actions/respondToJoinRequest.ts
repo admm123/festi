@@ -27,7 +27,15 @@ export async function respondToJoinRequest(
   const participant = await prisma.rideParticipant.findUnique({
     where: { id: participantId },
     include: {
-      ride: { select: { id: true, title: true, creatorId: true } },
+      ride: {
+        select: {
+          id: true,
+          title: true,
+          creatorId: true,
+          status: true,
+          maxParticipants: true,
+        },
+      },
     },
   });
 
@@ -42,11 +50,24 @@ export async function respondToJoinRequest(
     };
   }
 
+  if (participant.ride.status === "CANCELLED") {
+    return { success: false, error: "This ride has been cancelled." };
+  }
+
   if (participant.status !== "PENDING") {
     return {
       success: false,
       error: "This request has already been handled.",
     };
+  }
+
+  if (approve && participant.ride.maxParticipants !== null) {
+    const approvedCount = await prisma.rideParticipant.count({
+      where: { rideId: participant.ride.id, status: "APPROVED" },
+    });
+    if (approvedCount >= participant.ride.maxParticipants) {
+      return { success: false, error: "This ride is full." };
+    }
   }
 
   const status = approve ? "APPROVED" : "REJECTED";

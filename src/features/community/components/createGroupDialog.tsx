@@ -158,6 +158,7 @@ export function CreateGroupDialog() {
               >
                 {imagePreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
+                  // biome-ignore lint/performance/noImgElement: local blob-URL preview via URL.createObjectURL — next/image cannot optimize object URLs
                   <img
                     src={imagePreview}
                     alt="Group cover preview"

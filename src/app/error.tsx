@@ -2,6 +2,6 @@
 
 import { ErrorComponent } from "@/components/errorComponent";
 
-export default function Error() {
+export default function ErrorPage() {
   return <ErrorComponent />;
 }

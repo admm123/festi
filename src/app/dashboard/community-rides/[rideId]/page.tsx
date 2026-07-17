@@ -2,17 +2,21 @@ import { format } from "date-fns";
 import { ArrowLeftIcon, CalendarIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireAuth } from "@/features/auth/guards";
 import { getRide } from "@/features/rides/actions/getRide";
+import { CancelRideButton } from "@/features/rides/components/cancelRideButton";
 import { DeleteRideButton } from "@/features/rides/components/deleteRideButton";
+import { EditRideDialog } from "@/features/rides/components/editRideDialog";
 import { GpxDownloadButton } from "@/features/rides/components/gpxDownloadButton";
 import { RideJoinButton } from "@/features/rides/components/rideJoinButton";
 import { RideParticipants } from "@/features/rides/components/rideParticipants";
 import { RidePhotos } from "@/features/rides/components/ridePhotos";
 import { RideRoutePanel } from "@/features/rides/components/rideRoutePanel";
 import { RouteStatsPanel } from "@/features/rides/components/routeStatsPanel";
+import { formatDifficulty, formatPace } from "@/features/rides/lib/format";
 
 export default async function RideDetailPage({
   params,
@@ -27,22 +31,50 @@ export default async function RideDetailPage({
     notFound();
   }
 
+  const isCancelled = ride.status === "CANCELLED";
+  const isFull =
+    ride.maxParticipants !== null &&
+    ride.participantCount >= ride.maxParticipants;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="ghost" size="icon">
           <Link href="/dashboard/community-rides" aria-label="Back to rides">
             <ArrowLeftIcon className="size-4" />
           </Link>
         </Button>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold tracking-tight">{ride.title}</h1>
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <CalendarIcon className="size-3.5" />
             {format(new Date(ride.startTime), "EEEE, MMM d yyyy 'at' HH:mm")}
           </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {isCancelled && <Badge variant="destructive">Cancelled</Badge>}
+            {ride.pace && (
+              <Badge variant="secondary">{formatPace(ride.pace)}</Badge>
+            )}
+            {ride.difficulty && (
+              <Badge variant="secondary">
+                {formatDifficulty(ride.difficulty)}
+              </Badge>
+            )}
+            {ride.maxParticipants !== null && (
+              <Badge variant="outline">
+                {ride.participantCount}/{ride.maxParticipants} spots
+              </Badge>
+            )}
+            {isFull && <Badge variant="destructive">Full</Badge>}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {ride.isCreator && !isCancelled && (
+            <>
+              <EditRideDialog ride={ride} />
+              <CancelRideButton rideId={ride.id} />
+            </>
+          )}
           {ride.isCreator && <DeleteRideButton rideId={ride.id} />}
           {(ride.isCreator || ride.participantStatus === "APPROVED") && (
             <GpxDownloadButton rideId={ride.id} />
@@ -51,6 +83,8 @@ export default async function RideDetailPage({
             rideId={ride.id}
             isCreator={ride.isCreator}
             participantStatus={ride.participantStatus}
+            rideStatus={ride.status}
+            isFull={isFull}
             isPast={new Date(ride.startTime).getTime() < Date.now()}
           />
         </div>
@@ -106,6 +140,7 @@ export default async function RideDetailPage({
             isCreator={ride.isCreator}
             creator={ride.creator}
             participants={ride.participants}
+            maxParticipants={ride.maxParticipants}
           />
 
           <RidePhotos

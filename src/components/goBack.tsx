@@ -1,13 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function GoBack({ className }: { className?: string }) {
   const router = useRouter();
 
   return (
     <button
+      type="button"
       onClick={() => router.back()}
       aria-label="Go back"
       className={

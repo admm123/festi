@@ -14,6 +14,8 @@ type RideParticipantsProps = {
   isCreator: boolean;
   creator: RideCreator;
   participants: RideParticipantInfo[];
+  /** Null means unlimited spots. */
+  maxParticipants: number | null;
 };
 
 function initials(name: string): string {
@@ -51,6 +53,7 @@ export function RideParticipants({
   isCreator,
   creator,
   participants,
+  maxParticipants,
 }: RideParticipantsProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -138,7 +141,14 @@ export function RideParticipants({
       )}
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium">Riders ({approved.length + 1})</h3>
+        <h3 className="text-sm font-medium">
+          Riders ({approved.length + 1})
+          {maxParticipants !== null && (
+            <span className="ml-2 font-normal text-muted-foreground">
+              {approved.length}/{maxParticipants} spots filled
+            </span>
+          )}
+        </h3>
         <ul className="flex flex-wrap gap-2">
           <li key={creator.id}>
             <RiderChip user={creator} host />

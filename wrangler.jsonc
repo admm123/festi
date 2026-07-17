@@ -1,28 +1,28 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "festi",
-	"main": ".open-next/worker.js",
-	"compatibility_date": "2026-07-14",
-	"compatibility_flags": ["nodejs_compat"],
-	"vars": {
-		// Must be an address on your Resend-verified domain, otherwise Resend
-		// only delivers to your own account email.
-		"EMAIL_FROM": "Festi <noreply@festicycling.com>"
-	},
-	"assets": {
-		"directory": ".open-next/assets",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"logs": {
-		"enabled": true,
-		"invocation_logs": true
-		},
-		"traces": {
-		"enabled": false
-		}
-  	}
-	// Environment variables (DATABASE_URL, auth secrets, etc.) should be set as
-	// secrets via `wrangler secret put <NAME>` or in the Cloudflare dashboard.
-	// Do NOT commit real secrets here.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "festi",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    // Must be an address on your Resend-verified domain, otherwise Resend
+    // only delivers to your own account email.
+    "EMAIL_FROM": "Festi <noreply@festicycling.com>"
+  },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false
+    }
+  }
+  // Environment variables (DATABASE_URL, auth secrets, etc.) should be set as
+  // secrets via `wrangler secret put <NAME>` or in the Cloudflare dashboard.
+  // Do NOT commit real secrets here.
 }

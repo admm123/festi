@@ -1,5 +1,16 @@
 import { Resend } from "resend";
 
+// Fail loudly at boot when email is not configured: better-auth swallows
+// send-hook errors, so without this warning users register "successfully"
+// but never receive their verification email and are locked out silently.
+if (!process.env.RESEND_API_KEY) {
+  console.warn(
+    "[email] RESEND_API_KEY is not set — verification and password-reset " +
+      "emails will NOT be sent, and new users will be unable to verify " +
+      "their accounts. Set RESEND_API_KEY to enable transactional email.",
+  );
+}
+
 // Lazy initialization to avoid build-time errors when API key is not set
 let resend: Resend | null = null;
 

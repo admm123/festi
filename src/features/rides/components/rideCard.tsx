@@ -1,9 +1,16 @@
 import { format } from "date-fns";
 import { BikeIcon, ClockIcon, MapPinIcon, MountainIcon } from "lucide-react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { formatDistance, formatDuration, formatElevation } from "../lib/format";
+import {
+  formatDifficulty,
+  formatDistance,
+  formatDuration,
+  formatElevation,
+  formatPace,
+} from "../lib/format";
 import type { RideSummary } from "../types";
 import { RideJoinButton } from "./rideJoinButton";
 import { RouteThumbnail } from "./routeThumbnail";
@@ -14,6 +21,9 @@ type RideCardProps = {
 
 export function RideCard({ ride }: RideCardProps) {
   const href = `/dashboard/community-rides/${ride.id}`;
+  const isFull =
+    ride.maxParticipants !== null &&
+    ride.participantCount >= ride.maxParticipants;
 
   return (
     <Card className="gap-0 py-0">
@@ -34,6 +44,18 @@ export function RideCard({ ride }: RideCardProps) {
             <p className="text-xs text-muted-foreground">
               {format(new Date(ride.startTime), "EEEE, MMM d 'at' HH:mm")}
             </p>
+            {(ride.pace || ride.difficulty) && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {ride.pace && (
+                  <Badge variant="secondary">{formatPace(ride.pace)}</Badge>
+                )}
+                {ride.difficulty && (
+                  <Badge variant="secondary">
+                    {formatDifficulty(ride.difficulty)}
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -60,7 +82,9 @@ export function RideCard({ ride }: RideCardProps) {
 
         <p className="text-xs text-muted-foreground">
           Created by {ride.creator.username ?? ride.creator.name}
-          {ride.participantCount > 0 && ` · ${ride.participantCount} joined`}
+          {ride.maxParticipants !== null
+            ? ` · ${ride.participantCount}/${ride.maxParticipants} spots`
+            : ride.participantCount > 0 && ` · ${ride.participantCount} joined`}
         </p>
       </CardContent>
 
@@ -72,6 +96,8 @@ export function RideCard({ ride }: RideCardProps) {
           rideId={ride.id}
           isCreator={ride.isCreator}
           participantStatus={ride.participantStatus}
+          rideStatus={ride.status}
+          isFull={isFull}
           isPast={new Date(ride.startTime).getTime() < Date.now()}
         />
       </CardFooter>

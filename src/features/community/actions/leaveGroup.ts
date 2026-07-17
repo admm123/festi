@@ -31,6 +31,25 @@ export async function leaveGroup(groupId: string) {
     };
   }
 
+  const membership = await prisma.groupMember.findUnique({
+    where: {
+      userId_groupId: {
+        userId: session.user.id,
+        groupId,
+      },
+    },
+    select: {
+      status: true,
+    },
+  });
+
+  if (!membership) {
+    return {
+      success: false as const,
+      error: "You are not a member of this group.",
+    };
+  }
+
   await prisma.groupMember.delete({
     where: {
       userId_groupId: {
@@ -41,6 +60,23 @@ export async function leaveGroup(groupId: string) {
   });
 
   revalidatePath(`/groups/${groupId}`);
+
+  // A pending member leaving is really a cancelled join request: remove the
+  // unseen request notification instead of logging a "left the group" event.
+  if (membership.status === "PENDING") {
+    await Notifier.remove({
+      type: NotificationType.GROUP_JOIN_REQUESTED,
+      userId: group.createdById,
+      actorId: session.user.id,
+      targetType: "Group",
+      targetId: groupId,
+    });
+
+    return {
+      success: true as const,
+      message: "Your join request has been cancelled.",
+    };
+  }
 
   await Logger.log(
     ActivityAction.GROUP_LEFT,

@@ -39,7 +39,7 @@ export function RidersGrid() {
     if (!query) return riders;
 
     return riders.filter((rider) =>
-      [rider.name, rider.username, rider.email]
+      [rider.name, rider.username]
         .filter(Boolean)
         .some((value) => (value ?? "").toLowerCase().includes(query)),
     );

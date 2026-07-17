@@ -55,7 +55,7 @@ export function EditGroupDialog({
   const resetImage = () => {
     setImageBlob(null);
     setImagePreview((prev) => {
-      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return currentImage;
     });
   };
@@ -73,7 +73,7 @@ export function EditGroupDialog({
       });
       setImageBlob(webp);
       setImagePreview((prev) => {
-        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return URL.createObjectURL(webp);
       });
     } catch (error) {
@@ -178,6 +178,7 @@ export function EditGroupDialog({
               >
                 {imagePreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
+                  // biome-ignore lint/performance/noImgElement: local blob-URL preview via URL.createObjectURL — next/image cannot optimize object URLs
                   <img
                     src={imagePreview}
                     alt="Group cover preview"

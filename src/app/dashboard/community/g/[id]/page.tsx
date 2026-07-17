@@ -1,13 +1,8 @@
-import {
-  ClockIcon,
-  MessageCircleIcon,
-  TrashIcon,
-  UsersIcon,
-} from "lucide-react";
+import { ClockIcon, MessageCircleIcon, UsersIcon } from "lucide-react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -19,6 +14,7 @@ import { GroupChat } from "@/features/chat/components/groupChat";
 import { DeleteGroupDialog } from "@/features/community/components/deleteGroupDialog";
 import { EditGroupDialog } from "@/features/community/components/editGroupDialog";
 import { GroupJoinButton } from "@/features/community/components/groupJoinButton";
+import { GroupJoinRequests } from "@/features/community/components/groupJoinRequests";
 import { KickMemberButton } from "@/features/community/components/kickMemberButton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -46,6 +42,9 @@ export default async function GroupPage({
         },
       },
       members: {
+        // Only approved members count as members; pending join requests are
+        // fetched separately and never leave the server for non-owners.
+        where: { status: "APPROVED" },
         include: {
           user: {
             select: {
@@ -67,9 +66,40 @@ export default async function GroupPage({
 
   const isOwner = session?.user.id === group.createdById;
 
-  const isMember = group.members.some(
-    (member) => member.user.id == session?.user.id,
-  );
+  const [ownMembership, pendingMembers] = await Promise.all([
+    session
+      ? prisma.groupMember.findUnique({
+          where: {
+            userId_groupId: {
+              userId: session.user.id,
+              groupId: id,
+            },
+          },
+          select: {
+            status: true,
+          },
+        })
+      : null,
+    isOwner
+      ? prisma.groupMember.findMany({
+          where: { groupId: id, status: "PENDING" },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+          },
+        })
+      : [],
+  ]);
+
+  const isMember = ownMembership?.status === "APPROVED";
 
   const groupForButton = {
     id: group.id,
@@ -79,6 +109,8 @@ export default async function GroupPage({
     memberCount: group.members.length,
     isOwner,
     isMember,
+    membershipStatus: ownMembership?.status ?? null,
+    needApproval: group.needApproval,
     createdBy: {
       id: group.createdBy.id,
       name: group.createdBy.name,
@@ -128,49 +160,81 @@ export default async function GroupPage({
 
       {isMember ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-red-500/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UsersIcon className="size-5" />
-                Members
-              </CardTitle>
-              <CardDescription>
-                Riders who are part of this group
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {group.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between gap-4 rounded-lg border p-3"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <Avatar className="size-10">
-                      <AvatarImage src={member.user.image ?? undefined} />
-                      <AvatarFallback>
-                        {member.user.name.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+          <div className="space-y-6">
+            {isOwner && (
+              <Card className="border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClockIcon className="size-5" />
+                    Join requests
+                    {pendingMembers.length > 0 && (
+                      <Badge variant="destructive">
+                        {pendingMembers.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Riders asking to join this group
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <GroupJoinRequests
+                    groupId={group.id}
+                    requests={pendingMembers}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{member.user.name}</p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        @{member.user.username ?? "rider"}
-                      </p>
+            <Card className="border-red-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UsersIcon className="size-5" />
+                  Members
+                </CardTitle>
+                <CardDescription>
+                  Riders who are part of this group
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {group.members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between gap-4 rounded-lg border p-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar className="size-10">
+                        <AvatarImage src={member.user.image ?? undefined} />
+                        <AvatarFallback>
+                          {member.user.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {member.user.name}
+                        </p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          @{member.user.username ?? "rider"}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {isOwner && member.user.id !== group.createdById ? (
-                    <KickMemberButton groupId={group.id} memberId={member.id} />
-                  ) : (
-                    <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs capitalize text-muted-foreground">
-                      {member.role}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                    {isOwner && member.user.id !== group.createdById ? (
+                      <KickMemberButton
+                        groupId={group.id}
+                        memberId={member.id}
+                      />
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs capitalize text-muted-foreground">
+                        {member.role}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="space-y-6">
             <Card className="border-red-500/20">
@@ -192,7 +256,9 @@ export default async function GroupPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UsersIcon className="size-5" />
-              You are not a member of this group
+              {ownMembership?.status === "PENDING"
+                ? "Your join request is pending"
+                : "You are not a member of this group"}
             </CardTitle>
           </CardHeader>
           <CardContent>

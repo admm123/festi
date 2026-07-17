@@ -85,6 +85,10 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     elevationLoss: ride.elevationLoss,
     routeGeometry: ride.routeGeometry,
     waypoints,
+    status: ride.status,
+    pace: (ride.pace ?? null) as RideDetail["pace"],
+    difficulty: (ride.difficulty ?? null) as RideDetail["difficulty"],
+    maxParticipants: ride.maxParticipants,
     createdAt: ride.createdAt.toISOString(),
     creator: ride.creator,
     participantCount: ride.participants.filter((p) => p.status === "APPROVED")

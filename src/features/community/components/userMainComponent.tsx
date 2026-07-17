@@ -1,7 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeCheck } from "lucide-react";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ErrorComponent } from "@/components/errorComponent";
 import LoadingComponent from "@/components/loadingComponent";
 import NotFoundComponent from "@/components/notFoundComponent";
@@ -22,9 +22,7 @@ const UserMainComponent = () => {
 
   if (query.isError) {
     return (
-      <ErrorComponent
-        error={(query.error as any)?.message ?? "An error occurred"}
-      />
+      <ErrorComponent error={query.error?.message ?? "An error occurred"} />
     );
   }
 

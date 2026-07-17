@@ -4,6 +4,12 @@ export type RouteProfile = "trekking" | "fastbike" | "gravel";
 
 export type RideParticipantStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+export type RideStatus = "SCHEDULED" | "CANCELLED";
+
+export type RidePace = "relaxed" | "social" | "tempo" | "fast";
+
+export type RideDifficulty = "easy" | "moderate" | "hard" | "expert";
+
 /** A geocoded place returned by the `searchPlaces` action. */
 export type PlaceResult = {
   id: string;
@@ -58,8 +64,14 @@ export type RideSummary = {
   elevationLoss: number;
   routeGeometry: string;
   waypoints: Waypoint[];
+  status: RideStatus;
+  pace: RidePace | null;
+  difficulty: RideDifficulty | null;
+  /** Null means unlimited spots. */
+  maxParticipants: number | null;
   createdAt: string;
   creator: RideCreator;
+  /** Number of approved participants (the creator is not counted). */
   participantCount: number;
   isCreator: boolean;
   participantStatus: RideParticipantStatus | null;

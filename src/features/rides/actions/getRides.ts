@@ -1,23 +1,49 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth/guards";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { type RideFiltersInput, rideFiltersSchema } from "../schemas";
 import type { RideSummary, Waypoint } from "../types";
 
 /**
- * Returns upcoming rides (starting now or later) ordered by start time, with
- * the approved participant count and the current user's join status.
+ * Returns scheduled rides ordered by start time, with the approved
+ * participant count and the current user's join status. Cancelled rides are
+ * hidden. Accepts optional discovery filters: case-insensitive search over
+ * title/start location, exact pace/difficulty match, and `includePast` to
+ * also return rides that already started (default: upcoming only).
  */
-export async function getRides(): Promise<RideSummary[]> {
+export async function getRides(input?: unknown): Promise<RideSummary[]> {
   const session = await getCurrentUser();
   if (!session) {
     throw new Error("You must be signed in.");
   }
 
+  const parsed = rideFiltersSchema.safeParse(input ?? {});
+  const filters: RideFiltersInput = parsed.success ? parsed.data : {};
+
+  const where: Prisma.RideWhereInput = {
+    status: "SCHEDULED",
+    ...(filters.includePast ? {} : { startTime: { gte: new Date() } }),
+    ...(filters.search
+      ? {
+          OR: [
+            { title: { contains: filters.search, mode: "insensitive" } },
+            {
+              startLocation: {
+                contains: filters.search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        }
+      : {}),
+    ...(filters.pace ? { pace: filters.pace } : {}),
+    ...(filters.difficulty ? { difficulty: filters.difficulty } : {}),
+  };
+
   const rides = await prisma.ride.findMany({
-    where: {
-      startTime: { gte: new Date() },
-    },
+    where,
     orderBy: {
       startTime: "asc",
     },
@@ -50,6 +76,10 @@ export async function getRides(): Promise<RideSummary[]> {
     elevationLoss: ride.elevationLoss,
     routeGeometry: ride.routeGeometry,
     waypoints: ride.waypoints as unknown as Waypoint[],
+    status: ride.status,
+    pace: (ride.pace ?? null) as RideSummary["pace"],
+    difficulty: (ride.difficulty ?? null) as RideSummary["difficulty"],
+    maxParticipants: ride.maxParticipants,
     createdAt: ride.createdAt.toISOString(),
     creator: ride.creator,
     participantCount: ride._count.participants,

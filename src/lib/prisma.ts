@@ -1,6 +1,6 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { cache } from "react";
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 
 /**
  * On Cloudflare Workers a database connection cannot be reused across requests

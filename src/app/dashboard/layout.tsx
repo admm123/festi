@@ -1,4 +1,3 @@
-import GoBack from "@/components/goBack";
 import HeaderButtonGroup from "@/components/headerButtonGroup";
 import { AppSidebar } from "@/components/sidebar";
 import { Separator } from "@/components/ui/separator";

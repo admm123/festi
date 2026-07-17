@@ -19,16 +19,19 @@ export async function getGroupMessages(groupId: string) {
         groupId,
       },
     },
+    select: {
+      status: true,
+    },
   });
 
-  if (!currentMembership) {
+  if (currentMembership?.status !== "APPROVED") {
     throw new Error("You must be a member to view messages.");
   }
 
   const [messages, members] = await Promise.all([
     prisma.groupMessage.findMany({
       where: { groupId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 100,
       include: {
         user: {
@@ -43,7 +46,7 @@ export async function getGroupMessages(groupId: string) {
     }),
 
     prisma.groupMember.findMany({
-      where: { groupId },
+      where: { groupId, status: "APPROVED" },
       select: {
         userId: true,
       },
@@ -54,7 +57,9 @@ export async function getGroupMessages(groupId: string) {
 
   return {
     currentUserId: session.user.id,
-    messages: messages.map((message) => ({
+    // Fetched newest-first to keep the latest 100; reversed back to
+    // ascending order for rendering.
+    messages: messages.reverse().map((message) => ({
       id: message.id,
       content: message.content,
       createdAt: message.createdAt.toISOString(),
@@ -87,9 +92,12 @@ export async function sendGroupMessage(values: MessageFormData) {
         groupId,
       },
     },
+    select: {
+      status: true,
+    },
   });
 
-  if (!membership) {
+  if (membership?.status !== "APPROVED") {
     throw new Error("You must be a member to send messages.");
   }
 

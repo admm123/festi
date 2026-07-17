@@ -2,15 +2,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin } from "better-auth/plugins";
-import { prisma } from "@/lib/prisma";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { prisma } from "@/lib/prisma";
 
 import {
-  sendEmail,
-  getVerificationEmailHtml,
-  getPasswordResetEmailHtml,
   getExistingAccountEmailHtml,
+  getPasswordResetEmailHtml,
+  getVerificationEmailHtml,
+  sendEmail,
 } from "./email";
 
 export const auth = betterAuth({
@@ -35,7 +35,9 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:3000",
     "http://10.160.92.25:3000",
-    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+    ...(process.env.NEXT_PUBLIC_APP_URL
+      ? [process.env.NEXT_PUBLIC_APP_URL]
+      : []),
   ],
   emailAndPassword: {
     enabled: true,
@@ -81,6 +83,9 @@ export const auth = betterAuth({
     }),
   },
   emailVerification: {
+    // 24 hours — matches the expiry stated in the verification email copy.
+    // (better-auth's default is only 1 hour.)
+    expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, url }) => {
       await sendEmail({
         to: user.email,

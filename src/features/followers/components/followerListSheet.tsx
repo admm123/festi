@@ -41,6 +41,7 @@ function FollowerRow({
         {showStatus && user.isOnline ? (
           <span
             className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-green-500"
+            role="img"
             aria-label="Online"
             title="Online"
           />

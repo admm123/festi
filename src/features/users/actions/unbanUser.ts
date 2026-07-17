@@ -33,7 +33,7 @@ export async function unbanUser(userId: string) {
     },
   });
 
-  revalidatePath("/admin/users");
+  revalidatePath("/dashboard/admin/users");
 
   await Logger.log(
     ActivityAction.USER_UNBANNED,

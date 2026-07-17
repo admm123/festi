@@ -32,8 +32,17 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     };
   }
 
-  const { title, description, startTime, startLocation, waypoints, profile } =
-    parsed.data;
+  const {
+    title,
+    description,
+    startTime,
+    startLocation,
+    waypoints,
+    profile,
+    pace,
+    difficulty,
+    maxParticipants,
+  } = parsed.data;
 
   // Only one ride per creator per calendar day.
   const dayStart = new Date(startTime);
@@ -91,6 +100,9 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
       routeGeometry: route.routeGeometry,
       waypoints,
       elevationProfile: route.elevationProfile as unknown as object,
+      pace: pace ?? null,
+      difficulty: difficulty ?? null,
+      maxParticipants: maxParticipants ?? null,
     },
   });
 

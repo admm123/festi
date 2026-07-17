@@ -35,7 +35,7 @@ export async function updateUserRole(userId: string, role: string) {
     data: { role: parsed.data.role },
   });
 
-  revalidatePath("/admin/users");
+  revalidatePath("/dashboard/admin/users");
 
   await Logger.log(
     ActivityAction.USER_ROLE_CHANGED,

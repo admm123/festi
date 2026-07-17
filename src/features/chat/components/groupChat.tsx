@@ -84,6 +84,7 @@ export function GroupChat({ groupId }: { groupId: string }) {
     },
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger — scroll to bottom only when the message count changes; the effect body touches nothing but a ref
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);

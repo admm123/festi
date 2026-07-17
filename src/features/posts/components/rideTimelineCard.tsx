@@ -120,6 +120,11 @@ export function RideTimelineCard({ ride }: RideTimelineCardProps) {
               rideId={ride.id}
               isCreator={ride.isCreator}
               participantStatus={ride.participantStatus}
+              rideStatus={ride.status}
+              isFull={
+                ride.maxParticipants !== null &&
+                ride.participantCount >= ride.maxParticipants
+              }
               isPast={isPast}
             />
             {ride.participantCount > 0 && (

@@ -26,7 +26,10 @@ export function CookieConsent() {
 
   const accept = () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ accepted: true, at: Date.now() }));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ accepted: true, at: Date.now() }),
+      );
     } catch {
       // Ignore storage errors (e.g. private mode); banner just won't persist.
     }

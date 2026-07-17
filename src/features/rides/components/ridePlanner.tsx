@@ -31,9 +31,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { calculateRoute } from "../actions/calculateRoute";
 import { createRide } from "../actions/createRide";
+import { RIDE_DIFFICULTY_OPTIONS, RIDE_PACE_OPTIONS } from "../lib/format";
 import { type RideFormValues, rideFormSchema } from "../schemas";
 import type {
   PlaceResult,
+  RideDifficulty,
+  RidePace,
   RouteProfile,
   RouteResult,
   Waypoint,
@@ -115,10 +118,17 @@ export function RidePlanner() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<RideFormValues>({
     resolver: zodResolver(rideFormSchema),
-    defaultValues: { title: "", description: "", startTime: "" },
+    defaultValues: {
+      title: "",
+      description: "",
+      startTime: "",
+      maxParticipants: "",
+    },
   });
 
   const calcMutation = useMutation({
@@ -145,6 +155,10 @@ export function RidePlanner() {
         startLocation: startPlace?.name ?? "",
         waypoints,
         profile,
+        pace: values.pace ?? null,
+        difficulty: values.difficulty ?? null,
+        maxParticipants:
+          values.maxParticipants === "" ? null : Number(values.maxParticipants),
       });
       if (!result.success) {
         throw new Error(result.error);
@@ -523,6 +537,82 @@ export function RidePlanner() {
                     {errors.description && (
                       <p className="text-destructive text-xs">
                         {errors.description.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="pace">Pace (optional)</Label>
+                      <Select
+                        value={watch("pace") ?? "none"}
+                        onValueChange={(value) =>
+                          setValue(
+                            "pace",
+                            value === "none" ? undefined : (value as RidePace),
+                          )
+                        }
+                      >
+                        <SelectTrigger id="pace" className="w-full">
+                          <SelectValue placeholder="No pace set" />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="none">No pace set</SelectItem>
+                          {RIDE_PACE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="difficulty">Difficulty (optional)</Label>
+                      <Select
+                        value={watch("difficulty") ?? "none"}
+                        onValueChange={(value) =>
+                          setValue(
+                            "difficulty",
+                            value === "none"
+                              ? undefined
+                              : (value as RideDifficulty),
+                          )
+                        }
+                      >
+                        <SelectTrigger id="difficulty" className="w-full">
+                          <SelectValue placeholder="No difficulty set" />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="none">
+                            No difficulty set
+                          </SelectItem>
+                          {RIDE_DIFFICULTY_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="maxParticipants">
+                      Max riders (optional)
+                    </Label>
+                    <Input
+                      id="maxParticipants"
+                      type="number"
+                      inputMode="numeric"
+                      min={2}
+                      max={200}
+                      placeholder="No limit"
+                      {...register("maxParticipants")}
+                    />
+                    {errors.maxParticipants && (
+                      <p className="text-destructive text-xs">
+                        {errors.maxParticipants.message}
                       </p>
                     )}
                   </div>

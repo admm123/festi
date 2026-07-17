@@ -56,12 +56,12 @@ export function TypedHeadline() {
       className="whitespace-nowrap text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
     >
       <span aria-hidden="true">
-        {SEGMENTS.map((segment, i) => {
+        {SEGMENTS.map((segment) => {
           const visible = segment.text.slice(0, Math.max(0, remaining));
           remaining -= segment.text.length;
           return (
             <span
-              key={i}
+              key={segment.text}
               className={
                 segment.gradient
                   ? "bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent"

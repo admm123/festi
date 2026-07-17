@@ -21,7 +21,6 @@ export async function getRiders() {
       id: true,
       name: true,
       username: true,
-      email: true,
       image: true,
       createdAt: true,
       role: true,

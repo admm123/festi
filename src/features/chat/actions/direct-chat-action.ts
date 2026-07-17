@@ -197,7 +197,7 @@ export async function getDirectMessages(
           { senderId: partnerId, recipientId: myId },
         ],
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 100,
       select: {
         id: true,
@@ -225,7 +225,9 @@ export async function getDirectMessages(
       isOnline: isOnline(partner.lastSeenAt),
     },
     canMessage,
-    messages: messages.map((message) => ({
+    // Fetched newest-first to keep the latest 100; reversed back to
+    // ascending order for rendering.
+    messages: messages.reverse().map((message) => ({
       id: message.id,
       content: message.content,
       createdAt: message.createdAt.toISOString(),
