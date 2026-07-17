@@ -305,6 +305,7 @@ model Ride {
   elevationLoss Int      @default(0)
   routeGeometry String
   waypoints     Json
+  elevationProfile Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

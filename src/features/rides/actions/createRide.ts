@@ -90,6 +90,7 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
       elevationLoss: route.elevationLoss,
       routeGeometry: route.routeGeometry,
       waypoints,
+      elevationProfile: route.elevationProfile as unknown as object,
     },
   });
 

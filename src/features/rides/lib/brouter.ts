@@ -61,6 +61,59 @@ function computeElevation(coordinates: number[][]): {
   return { gain: Math.round(gain), loss: Math.round(loss) };
 }
 
+/** Great-circle distance in meters between two `[lng, lat]` points. */
+function haversineMeters(a: number[], b: number[]): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b[1] - a[1]);
+  const dLng = toRad(a[0] - b[0]) * -1;
+  const lat1 = toRad(a[1]);
+  const lat2 = toRad(b[1]);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Builds a downsampled elevation profile (distance in km vs. elevation in m)
+ * from `[lng, lat, elevation]` coordinates, capped to ~200 points.
+ */
+function buildElevationProfile(
+  coordinates: number[][],
+): { distance: number; elevation: number; lat: number; lng: number }[] {
+  if (coordinates.length < 2) return [];
+
+  const MAX_POINTS = 200;
+  const step = Math.max(1, Math.ceil(coordinates.length / MAX_POINTS));
+
+  const profile: {
+    distance: number;
+    elevation: number;
+    lat: number;
+    lng: number;
+  }[] = [];
+  let cumulative = 0;
+
+  for (let i = 0; i < coordinates.length; i++) {
+    if (i > 0) {
+      cumulative += haversineMeters(coordinates[i - 1], coordinates[i]);
+    }
+    const ele = coordinates[i][2];
+    if (typeof ele !== "number") continue;
+    if (i % step === 0 || i === coordinates.length - 1) {
+      profile.push({
+        distance: Number((cumulative / 1000).toFixed(2)),
+        elevation: Math.round(ele),
+        lng: coordinates[i][0],
+        lat: coordinates[i][1],
+      });
+    }
+  }
+
+  return profile;
+}
+
 /**
  * Requests a cycling route between the given waypoints from BRouter and returns
  * normalized route statistics plus an encoded polyline for storage.
@@ -134,5 +187,6 @@ export async function fetchRoute(
     elevationLoss: loss,
     routeGeometry,
     coordinates: coordinates.map(([lng, lat]) => [lng, lat]),
+    elevationProfile: buildElevationProfile(coordinates),
   };
 }

@@ -7,10 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireAuth } from "@/features/auth/guards";
 import { getRide } from "@/features/rides/actions/getRide";
 import { DeleteRideButton } from "@/features/rides/components/deleteRideButton";
+import { GpxDownloadButton } from "@/features/rides/components/gpxDownloadButton";
 import { RideJoinButton } from "@/features/rides/components/rideJoinButton";
 import { RideParticipants } from "@/features/rides/components/rideParticipants";
 import { RidePhotos } from "@/features/rides/components/ridePhotos";
-import { RoutePreview } from "@/features/rides/components/routePreview";
+import { RideRoutePanel } from "@/features/rides/components/rideRoutePanel";
 import { RouteStatsPanel } from "@/features/rides/components/routeStatsPanel";
 
 export default async function RideDetailPage({
@@ -43,6 +44,9 @@ export default async function RideDetailPage({
         </div>
         <div className="flex items-center gap-2">
           {ride.isCreator && <DeleteRideButton rideId={ride.id} />}
+          {(ride.isCreator || ride.participantStatus === "APPROVED") && (
+            <GpxDownloadButton rideId={ride.id} />
+          )}
           <RideJoinButton
             rideId={ride.id}
             isCreator={ride.isCreator}
@@ -55,12 +59,11 @@ export default async function RideDetailPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="h-[360px] w-full lg:h-[520px]">
-              <RoutePreview
-                routeGeometry={ride.routeGeometry}
-                waypoints={ride.waypoints}
-              />
-            </div>
+            <RideRoutePanel
+              routeGeometry={ride.routeGeometry}
+              waypoints={ride.waypoints}
+              elevationProfile={ride.elevationProfile}
+            />
           </CardContent>
         </Card>
 
@@ -73,6 +76,7 @@ export default async function RideDetailPage({
               elevationLoss: ride.elevationLoss,
               routeGeometry: ride.routeGeometry,
               coordinates: [],
+              elevationProfile: ride.elevationProfile,
             }}
           />
 

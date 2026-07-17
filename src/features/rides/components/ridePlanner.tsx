@@ -38,6 +38,7 @@ import type {
   RouteResult,
   Waypoint,
 } from "../types";
+import { ElevationChart } from "./elevationChart";
 import { LocationSearch } from "./locationSearch";
 import { RideMap } from "./rideMap";
 import { RouteStatsBar } from "./routeStatsBar";
@@ -106,6 +107,9 @@ export function RidePlanner() {
   const [profile, setProfile] = useState<RouteProfile>("trekking");
   const [roundTrip, setRoundTrip] = useState(false);
   const [route, setRoute] = useState<RouteResult | null>(null);
+  const [elevationHover, setElevationHover] = useState<[number, number] | null>(
+    null,
+  );
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -361,8 +365,8 @@ export function RidePlanner() {
             key="build"
             className="grid animate-in gap-6 duration-300 fade-in-0 slide-in-from-right-2 lg:grid-cols-[1fr_340px]"
           >
-            <Card className="overflow-hidden">
-              <CardContent className="flex flex-col p-0">
+            <Card className="overflow-hidden lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col">
+              <CardContent className="flex min-h-0 flex-1 flex-col p-0">
                 {/* Toolbar above the map: profile selector + live stats */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b p-3">
                   <Select
@@ -383,11 +387,12 @@ export function RidePlanner() {
                   <RouteStatsBar route={route} />
                 </div>
 
-                <div className="h-[460px] w-full lg:h-[600px]">
+                <div className="min-h-[280px] w-full flex-1">
                   <RideMap
                     waypoints={waypoints}
                     routeCoordinates={route?.coordinates}
                     interactive
+                    highlight={elevationHover}
                     initialCenter={
                       startPlace ? [startPlace.lng, startPlace.lat] : undefined
                     }
@@ -396,11 +401,20 @@ export function RidePlanner() {
                     onMoveWaypoint={repositionWaypoint}
                   />
                 </div>
+
+                <div className="border-t p-3">
+                  <ElevationChart
+                    data={route?.elevationProfile ?? []}
+                    onHover={(point) =>
+                      setElevationHover(point ? [point.lng, point.lat] : null)
+                    }
+                  />
+                </div>
               </CardContent>
             </Card>
 
-            <div className="flex flex-col gap-4">
-              <Card className="flex-1">
+            <div className="flex flex-col gap-4 lg:h-[calc(100dvh-9rem)]">
+              <Card className="flex min-h-0 flex-1 flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-base">
                     Waypoints
@@ -425,7 +439,7 @@ export function RidePlanner() {
                     it.
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-h-0 flex-1 overflow-y-auto">
                   <WaypointList
                     waypoints={waypoints}
                     onRemove={removeWaypoint}

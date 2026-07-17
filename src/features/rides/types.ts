@@ -26,6 +26,17 @@ export type RouteResult = {
   routeGeometry: string;
   /** Decoded coordinates as `[lng, lat]` pairs for map rendering. */
   coordinates: [number, number][];
+  /** Sampled elevation profile along the route. */
+  elevationProfile: ElevationPoint[];
+};
+
+/** A single sample of the elevation profile: distance (km) vs. elevation (m). */
+export type ElevationPoint = {
+  distance: number;
+  elevation: number;
+  /** Position on the route, for highlighting on the map. */
+  lat: number;
+  lng: number;
 };
 
 export type RideCreator = {
@@ -71,4 +82,5 @@ export type RidePhotoInfo = {
 export type RideDetail = RideSummary & {
   participants: RideParticipantInfo[];
   photos: RidePhotoInfo[];
+  elevationProfile: ElevationPoint[];
 };

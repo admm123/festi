@@ -2,7 +2,8 @@
 
 import { getCurrentUser } from "@/features/auth/guards";
 import { prisma } from "@/lib/prisma";
-import type { RideDetail, Waypoint } from "../types";
+import { fetchRoute } from "../lib/brouter";
+import type { ElevationPoint, RideDetail, Waypoint } from "../types";
 
 /**
  * Returns a single ride with its participants. The creator sees every
@@ -53,6 +54,25 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     (participant) => participant.userId === session.user.id,
   );
 
+  const waypoints = ride.waypoints as unknown as Waypoint[];
+
+  // Prefer the profile stored at creation (positions match the saved route).
+  // Fall back to recomputing from waypoints for older rides that lack it.
+  let elevationProfile: ElevationPoint[] = [];
+  const stored = ride.elevationProfile as unknown as ElevationPoint[] | null;
+  if (Array.isArray(stored) && stored.length >= 2) {
+    elevationProfile = stored;
+  } else {
+    try {
+      if (waypoints.length >= 2) {
+        const route = await fetchRoute(waypoints, "trekking");
+        elevationProfile = route.elevationProfile;
+      }
+    } catch {
+      elevationProfile = [];
+    }
+  }
+
   return {
     id: ride.id,
     title: ride.title,
@@ -64,7 +84,7 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     elevationGain: ride.elevationGain,
     elevationLoss: ride.elevationLoss,
     routeGeometry: ride.routeGeometry,
-    waypoints: ride.waypoints as unknown as Waypoint[],
+    waypoints,
     createdAt: ride.createdAt.toISOString(),
     creator: ride.creator,
     participantCount: ride.participants.filter((p) => p.status === "APPROVED")
@@ -73,6 +93,7 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     participantStatus: ownParticipation?.status ?? null,
     photoCount: ride.photos.length,
     photos: ride.photos,
+    elevationProfile,
     participants: visibleParticipants.map((participant) => ({
       id: participant.id,
       status: participant.status,

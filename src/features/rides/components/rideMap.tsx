@@ -24,6 +24,8 @@ type RideMapProps = {
   onMoveWaypoint?: (index: number, waypoint: Waypoint) => void;
   /** Initial map center as [lng, lat]; falls back to the default. */
   initialCenter?: [number, number];
+  /** A point `[lng, lat]` to highlight on the route (e.g. elevation hover). */
+  highlight?: [number, number] | null;
   className?: string;
 };
 
@@ -32,6 +34,8 @@ const ROUTE_LAYER_ID = "ride-route-line";
 const ROUTE_HIT_LAYER_ID = "ride-route-hit";
 const DRAG_SOURCE_ID = "ride-drag";
 const DRAG_LAYER_ID = "ride-drag-line";
+const HIGHLIGHT_SOURCE_ID = "ride-highlight";
+const HIGHLIGHT_LAYER_ID = "ride-highlight-point";
 
 /** Index of the coordinate in `coords` closest to `target` (squared distance). */
 function nearestRouteIndex(
@@ -87,6 +91,7 @@ export function RideMap({
   onInsertWaypoint,
   onMoveWaypoint,
   initialCenter,
+  highlight,
   className,
 }: RideMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -291,6 +296,23 @@ export function RideMap({
           },
         });
 
+        // Highlight point (e.g. driven by hovering the elevation graph).
+        map.addSource(HIGHLIGHT_SOURCE_ID, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: HIGHLIGHT_LAYER_ID,
+          type: "circle",
+          source: HIGHLIGHT_SOURCE_ID,
+          paint: {
+            "circle-radius": 7,
+            "circle-color": "#ef4444",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 3,
+          },
+        });
+
         map.on("mouseenter", ROUTE_HIT_LAYER_ID, () => {
           if (interactiveRef.current && map) {
             map.getCanvas().style.cursor = "grab";
@@ -489,6 +511,30 @@ export function RideMap({
       });
     }
   }, [routeCoordinates, ready]);
+
+  // Update the highlight marker (elevation-graph hover).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) {
+      return;
+    }
+
+    const source = map.getSource(HIGHLIGHT_SOURCE_ID);
+    if (source && "setData" in source) {
+      (source as GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: highlight
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: { type: "Point", coordinates: highlight },
+              },
+            ]
+          : [],
+      });
+    }
+  }, [highlight, ready]);
 
   // Fit the view to the route. Only on read-only previews — auto-fitting while
   // the user is placing waypoints fights their clicks by zooming/panning.

@@ -8,6 +8,7 @@ import { RideMap } from "./rideMap";
 type RoutePreviewProps = {
   routeGeometry: string;
   waypoints: Waypoint[];
+  highlight?: [number, number] | null;
   className?: string;
 };
 
@@ -15,6 +16,7 @@ type RoutePreviewProps = {
 export function RoutePreview({
   routeGeometry,
   waypoints,
+  highlight,
   className,
 }: RoutePreviewProps) {
   const coordinates = useMemo(
@@ -26,6 +28,7 @@ export function RoutePreview({
     <RideMap
       waypoints={waypoints}
       routeCoordinates={coordinates}
+      highlight={highlight}
       className={className}
     />
   );
