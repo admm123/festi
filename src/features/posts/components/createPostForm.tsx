@@ -2,12 +2,26 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImagePlusIcon, Loader2Icon, SendIcon, XIcon } from "lucide-react";
+import {
+  ImagePlusIcon,
+  Loader2Icon,
+  PenSquareIcon,
+  SendIcon,
+  XIcon,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { processImageToWebp } from "@/lib/imageProcessing";
@@ -33,6 +47,7 @@ export function CreatePostForm({
 }: CreatePostFormProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [processing, setProcessing] = useState(false);
 
@@ -120,6 +135,7 @@ export function CreatePostForm({
       toast.success(data.message);
       reset();
       clearImages();
+      setOpen(false);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -136,119 +152,142 @@ export function CreatePostForm({
   const isSubmitting = mutation.isPending;
 
   return (
-    <div>
-      <form
-        onSubmit={handleSubmit((values) => mutation.mutate(values))}
-        className="flex gap-3"
-      >
-        <Avatar size="lg" className="mt-1 hidden sm:flex">
-          {authorImage && <AvatarImage src={authorImage} alt={authorName} />}
-          <AvatarFallback>{initials || "U"}</AvatarFallback>
-        </Avatar>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          reset();
+          clearImages();
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button className="w-full sm:w-auto">
+          <PenSquareIcon className="size-4" />
+          Create post
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Create a post</DialogTitle>
+          <DialogDescription>
+            Share a ride, a route, or a tip with the community.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={handleSubmit((values) => mutation.mutate(values))}
+          className="flex gap-3"
+        >
+          <Avatar size="lg" className="mt-1 hidden sm:flex">
+            {authorImage && <AvatarImage src={authorImage} alt={authorName} />}
+            <AvatarFallback>{initials || "U"}</AvatarFallback>
+          </Avatar>
 
-        <div className="flex flex-1 flex-col gap-3">
-          <Field data-invalid={!!errors.title}>
-            <FieldLabel htmlFor="post-title" className="sr-only">
-              Title
-            </FieldLabel>
-            <Input
-              id="post-title"
-              placeholder="Give your post a title…"
-              disabled={isSubmitting}
-              aria-invalid={!!errors.title}
-              {...register("title")}
-            />
-            {errors.title && <FieldError>{errors.title.message}</FieldError>}
-          </Field>
+          <div className="flex flex-1 flex-col gap-3">
+            <Field data-invalid={!!errors.title}>
+              <FieldLabel htmlFor="post-title" className="sr-only">
+                Title
+              </FieldLabel>
+              <Input
+                id="post-title"
+                placeholder="Give your post a title…"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.title}
+                {...register("title")}
+              />
+              {errors.title && <FieldError>{errors.title.message}</FieldError>}
+            </Field>
 
-          <Field data-invalid={!!errors.content}>
-            <FieldLabel htmlFor="post-content" className="sr-only">
-              Content
-            </FieldLabel>
-            <Controller
-              control={control}
-              name="content"
-              render={({ field }) => (
-                <MarkdownEditor
-                  id="post-content"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isSubmitting}
-                  placeholder="Share your ride, a route, a tip… Markdown and links are supported."
-                />
-              )}
-            />
-            {errors.content && (
-              <FieldError>{errors.content.message}</FieldError>
-            )}
-          </Field>
-
-          {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {images.map((img, index) => (
-                <div
-                  key={img.preview}
-                  className="group relative aspect-video overflow-hidden rounded-md border"
-                >
-                  {/* biome-ignore lint/performance/noImgElement: local object URL preview */}
-                  <img
-                    src={img.preview}
-                    alt={`Attachment ${index + 1}`}
-                    className="size-full object-cover"
+            <Field data-invalid={!!errors.content}>
+              <FieldLabel htmlFor="post-content" className="sr-only">
+                Content
+              </FieldLabel>
+              <Controller
+                control={control}
+                name="content"
+                render={({ field }) => (
+                  <MarkdownEditor
+                    id="post-content"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isSubmitting}
+                    placeholder="Share your ride, a route, a tip… Markdown and links are supported."
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                    aria-label="Remove image"
+                )}
+              />
+              {errors.content && (
+                <FieldError>{errors.content.message}</FieldError>
+              )}
+            </Field>
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((img, index) => (
+                  <div
+                    key={img.preview}
+                    className="group relative aspect-video overflow-hidden rounded-md border"
                   >
-                    <XIcon className="size-3.5" />
-                  </button>
-                </div>
-              ))}
+                    {/* biome-ignore lint/performance/noImgElement: local object URL preview */}
+                    <img
+                      src={img.preview}
+                      alt={`Attachment ${index + 1}`}
+                      className="size-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label="Remove image"
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                hidden
+                onChange={handleFiles}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  isSubmitting || processing || images.length >= MAX_POST_IMAGES
+                }
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {processing ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <ImagePlusIcon className="size-4" />
+                )}
+                Photos
+                <span className="text-muted-foreground">
+                  {images.length}/{MAX_POST_IMAGES}
+                </span>
+              </Button>
+
+              <Button type="submit" size="sm" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <SendIcon className="size-4" />
+                )}
+                Post
+              </Button>
             </div>
-          )}
-
-          <div className="flex items-center justify-between gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              hidden
-              onChange={handleFiles}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={
-                isSubmitting || processing || images.length >= MAX_POST_IMAGES
-              }
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {processing ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <ImagePlusIcon className="size-4" />
-              )}
-              Photos
-              <span className="text-muted-foreground">
-                {images.length}/{MAX_POST_IMAGES}
-              </span>
-            </Button>
-
-            <Button type="submit" size="sm" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <SendIcon className="size-4" />
-              )}
-              Post
-            </Button>
           </div>
-        </div>
-      </form>
-    </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,16 +1,25 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CompassIcon, SparklesIcon } from "lucide-react";
+import {
+  BikeIcon,
+  CompassIcon,
+  NewspaperIcon,
+  SparklesIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getFeed } from "../actions/getFeed";
 import type { FeedItem } from "../types";
 import { PostCard } from "./postCard";
 import { RideTimelineCard } from "./rideTimelineCard";
 
+type FeedTab = "posts" | "rides";
+
 export function PostFeed() {
+  const [tab, setTab] = useState<FeedTab>("posts");
   const [showDiscover, setShowDiscover] = useState(false);
 
   const {
@@ -28,9 +37,36 @@ export function PostFeed() {
     enabled: showDiscover,
   });
 
+  const kind = tab === "posts" ? "post" : "ride";
+  const followingItems = following.filter((item) => item.kind === kind);
+  const discoverItems = (discover.data ?? []).filter(
+    (item) => item.kind === kind,
+  );
+
+  const switchTab = (next: FeedTab) => {
+    setTab(next);
+    setShowDiscover(false);
+  };
+
+  const tabs = (
+    <Tabs value={tab} onValueChange={(v) => switchTab(v as FeedTab)}>
+      <TabsList>
+        <TabsTrigger value="posts">
+          <NewspaperIcon className="size-4" />
+          Posts
+        </TabsTrigger>
+        <TabsTrigger value="rides">
+          <BikeIcon className="size-4" />
+          Rides
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-4">
+        {tabs}
         {["a", "b", "c"].map((key) => (
           <Skeleton key={key} className="h-40 w-full rounded-xl" />
         ))}
@@ -40,23 +76,33 @@ export function PostFeed() {
 
   if (isError) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        Something went wrong loading the feed.
-      </p>
+      <div className="space-y-4">
+        {tabs}
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          Something went wrong loading the feed.
+        </p>
+      </div>
     );
   }
 
+  const emptyLabel = tab === "posts" ? "posts" : "rides";
+
   return (
     <div className="space-y-4">
-      {following.length > 0 ? (
-        <FeedList items={following} />
+      {tabs}
+
+      {followingItems.length > 0 ? (
+        <FeedList items={followingItems} />
       ) : (
         !showDiscover && (
-          <EmptyFollowing onDiscover={() => setShowDiscover(true)} />
+          <EmptyFollowing
+            label={emptyLabel}
+            onDiscover={() => setShowDiscover(true)}
+          />
         )
       )}
 
-      {!showDiscover && following.length > 0 && (
+      {!showDiscover && followingItems.length > 0 && (
         <DiscoverPrompt onDiscover={() => setShowDiscover(true)} />
       )}
 
@@ -79,14 +125,14 @@ export function PostFeed() {
             </div>
           ) : discover.isError ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Something went wrong loading more posts.
+              Something went wrong loading more {emptyLabel}.
             </p>
-          ) : (discover.data ?? []).length === 0 ? (
+          ) : discoverItems.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Nothing else to discover right now.
             </p>
           ) : (
-            <FeedList items={discover.data ?? []} />
+            <FeedList items={discoverItems} />
           )}
         </div>
       )}
@@ -141,14 +187,20 @@ function DiscoverPrompt({ onDiscover }: { onDiscover: () => void }) {
   );
 }
 
-function EmptyFollowing({ onDiscover }: { onDiscover: () => void }) {
+function EmptyFollowing({
+  label,
+  onDiscover,
+}: {
+  label: string;
+  onDiscover: () => void;
+}) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-red-500/30 py-16 text-center duration-500 animate-in fade-in zoom-in-95">
       <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-red-500/10">
         <SparklesIcon className="size-7 text-red-500" />
       </div>
       <p className="font-heading text-lg font-semibold">
-        Nothing new from people you follow
+        No {label} from people you follow
       </p>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
         Follow more riders, or discover what the rest of the community is

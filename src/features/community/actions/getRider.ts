@@ -10,9 +10,17 @@ export type Rider = {
   createdAt: string;
   banned: boolean | null;
   role: string | null;
+  bio: string | null;
+  location: string | null;
+  bikeBrand: string | null;
+  bikeModel: string | null;
+  skillLevel: string | null;
+  ridingStyles: string[];
+  yearsRiding: number | null;
   followersCount: number;
   followingCount: number;
   isFollowing: boolean;
+  isSelf: boolean;
 };
 
 export async function getRider(id: string): Promise<Rider | null> {
@@ -30,6 +38,13 @@ export async function getRider(id: string): Promise<Rider | null> {
       createdAt: true,
       banned: true,
       role: true,
+      bio: true,
+      location: true,
+      bikeBrand: true,
+      bikeModel: true,
+      skillLevel: true,
+      ridingStyles: true,
+      yearsRiding: true,
       _count: {
         select: {
           followers: true,
@@ -56,5 +71,6 @@ export async function getRider(id: string): Promise<Rider | null> {
     followersCount: rider._count.followers,
     followingCount: rider._count.following,
     isFollowing: !!isFollowing,
+    isSelf: session.user.id === id,
   };
 }

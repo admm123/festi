@@ -25,6 +25,13 @@ model User {
   banReason     String?
   banExpires    DateTime?
   lastSeenAt    DateTime?
+  bio          String?
+  location     String?
+  bikeBrand    String?
+  bikeModel    String?
+  skillLevel   String?
+  ridingStyles String[]  @default([])
+  yearsRiding  Int?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   sessions      Session[]

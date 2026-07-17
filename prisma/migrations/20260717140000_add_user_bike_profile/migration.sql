@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "user" ADD COLUMN "bio" TEXT;
+ALTER TABLE "user" ADD COLUMN "location" TEXT;
+ALTER TABLE "user" ADD COLUMN "bikeBrand" TEXT;
+ALTER TABLE "user" ADD COLUMN "bikeModel" TEXT;
+ALTER TABLE "user" ADD COLUMN "skillLevel" TEXT;
+ALTER TABLE "user" ADD COLUMN "ridingStyles" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "user" ADD COLUMN "yearsRiding" INTEGER;

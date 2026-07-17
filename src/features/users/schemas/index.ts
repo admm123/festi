@@ -28,3 +28,61 @@ export const updateRoleSchema = z.object({
 });
 
 export type UpdateRoleFormData = z.infer<typeof updateRoleSchema>;
+
+export const SKILL_LEVEL_VALUES = [
+  "beginner",
+  "intermediate",
+  "advanced",
+  "expert",
+] as const;
+
+export const RIDING_STYLE_VALUES = [
+  "road",
+  "gravel",
+  "mountain",
+  "commuting",
+  "touring",
+  "cyclocross",
+  "track",
+  "ebike",
+  "bmx",
+] as const;
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? value : null));
+
+export const updateProfileSchema = z.object({
+  bio: optionalText(500),
+  location: optionalText(100),
+  bikeBrand: optionalText(60),
+  bikeModel: optionalText(60),
+  skillLevel: z
+    .enum(SKILL_LEVEL_VALUES)
+    .nullable()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? value : null)),
+  ridingStyles: z.array(z.enum(RIDING_STYLE_VALUES)).max(9).default([]),
+  yearsRiding: z.number().int().min(0).max(80).nullable().optional(),
+});
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+/** Client form schema (yearsRiding kept as a string for the input). */
+export const profileFormSchema = z.object({
+  bio: z.string().trim().max(500, "Bio must be at most 500 characters"),
+  location: z.string().trim().max(100, "Location is too long"),
+  bikeBrand: z.string().trim().max(60),
+  bikeModel: z.string().trim().max(60),
+  skillLevel: z.string(),
+  ridingStyles: z.array(z.string()),
+  yearsRiding: z.string().trim(),
+});
+
+export type ProfileFormValues = z.infer<typeof profileFormSchema>;

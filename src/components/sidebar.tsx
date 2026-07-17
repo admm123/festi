@@ -1,19 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  HomeIcon,
+  BarChart3Icon,
+  BellIcon,
   BikeIcon,
-  UsersIcon,
+  HomeIcon,
   SettingsIcon,
   ShieldIcon,
-  BarChart3Icon,
   UserCogIcon,
   UserIcon,
-  BellIcon,
+  UsersIcon,
 } from "lucide-react";
-import { Logo } from "@/components/logo";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -105,9 +104,8 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
   return (
     <Sidebar className="border-r border-red-500/20">
       {/* Header */}
-      <SidebarHeader className="border-b border-red-500/20 px-4 py-3">
+      <SidebarHeader className="h-14 justify-center border-b border-red-500/20 px-4">
         <div className="flex items-center gap-3">
-          <Logo size={56} className="size-14" priority />
           <span className="text-xl font-bold tracking-tight">FESTI</span>
           {isAdmin && (
             <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-500">

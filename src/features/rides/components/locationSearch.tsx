@@ -11,14 +11,16 @@ type LocationSearchProps = {
   onSelect: (place: PlaceResult) => void;
   placeholder?: string;
   autoFocus?: boolean;
+  initialQuery?: string;
 };
 
 export function LocationSearch({
   onSelect,
   placeholder,
   autoFocus,
+  initialQuery,
 }: LocationSearchProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

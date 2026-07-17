@@ -1,6 +1,8 @@
 import { requireAuth } from "@/features/auth/guards";
+import type { Rider } from "@/features/community/actions/getRider";
 import { AvatarUploader } from "@/features/users/components/avatarUploader";
 import { ProfileFollowStats } from "@/features/users/components/profileFollowStats";
+import { RiderDetailsEditor } from "@/features/users/components/riderDetailsEditor";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProfilePage() {
@@ -13,6 +15,16 @@ export default async function ProfilePage() {
       username: true,
       email: true,
       image: true,
+      createdAt: true,
+      role: true,
+      banned: true,
+      bio: true,
+      location: true,
+      bikeBrand: true,
+      bikeModel: true,
+      skillLevel: true,
+      ridingStyles: true,
+      yearsRiding: true,
       _count: { select: { followers: true, following: true } },
     },
   });
@@ -20,6 +32,26 @@ export default async function ProfilePage() {
   const name = user?.name ?? session.user.name;
   const followersCount = user?._count.followers ?? 0;
   const followingCount = user?._count.following ?? 0;
+
+  const rider: Rider = {
+    name,
+    username: user?.username ?? null,
+    image: user?.image ?? null,
+    createdAt: (user?.createdAt ?? new Date()).toISOString(),
+    banned: user?.banned ?? null,
+    role: user?.role ?? null,
+    bio: user?.bio ?? null,
+    location: user?.location ?? null,
+    bikeBrand: user?.bikeBrand ?? null,
+    bikeModel: user?.bikeModel ?? null,
+    skillLevel: user?.skillLevel ?? null,
+    ridingStyles: user?.ridingStyles ?? [],
+    yearsRiding: user?.yearsRiding ?? null,
+    followersCount,
+    followingCount,
+    isFollowing: false,
+    isSelf: true,
+  };
 
   return (
     <div className="space-y-8">
@@ -42,6 +74,18 @@ export default async function ProfilePage() {
             followingCount={followingCount}
           />
         </div>
+      </div>
+
+      {/* Rider details */}
+      <div className="rounded-xl border p-4">
+        <div className="mb-1">
+          <h2 className="font-heading text-lg font-semibold">Rider details</h2>
+          <p className="text-sm text-muted-foreground">
+            Your bike, experience and riding styles shown on your public
+            profile.
+          </p>
+        </div>
+        <RiderDetailsEditor userId={session.user.id} rider={rider} />
       </div>
     </div>
   );

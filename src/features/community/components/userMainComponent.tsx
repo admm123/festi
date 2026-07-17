@@ -6,8 +6,10 @@ import { ErrorComponent } from "@/components/errorComponent";
 import LoadingComponent from "@/components/loadingComponent";
 import NotFoundComponent from "@/components/notFoundComponent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RiderProfileInfo } from "@/features/users/components/riderProfileInfo";
 import { getRider, type Rider } from "../actions/getRider";
 import FollowRiderButton from "./followRiderButton";
+import { UserContent } from "./userContent";
 
 const UserMainComponent = () => {
   const params = useParams();
@@ -73,6 +75,16 @@ const UserMainComponent = () => {
               joinedDate,
             )}
       </p>
+
+      {/* Rider details */}
+      <div className="rounded-xl border p-4">
+        <h2 className="mb-3 font-heading text-lg font-semibold">
+          Rider details
+        </h2>
+        <RiderProfileInfo rider={rider} />
+      </div>
+
+      <UserContent userId={id} />
     </div>
   );
 };

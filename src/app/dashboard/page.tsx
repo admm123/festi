@@ -8,20 +8,22 @@ export default async function DashboardPage() {
   return (
     <div className="w-full space-y-6">
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {session.user.name?.split(" ")[0] || "Rider"}!
-        </h1>
-        <p className="text-muted-foreground">
-          Share an update and see what's new in the community
-        </p>
-      </div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Welcome back, {session.user.name?.split(" ")[0] || "Rider"}!
+          </h1>
+          <p className="text-muted-foreground">
+            Share an update and see what's new in the community
+          </p>
+        </div>
 
-      {/* Post creation */}
-      <CreatePostForm
-        authorName={session.user.name || "Rider"}
-        authorImage={session.user.image ?? null}
-      />
+        {/* Post creation (opens in a dialog) */}
+        <CreatePostForm
+          authorName={session.user.name || "Rider"}
+          authorImage={session.user.image ?? null}
+        />
+      </div>
 
       {/* For You feed */}
       <div className="space-y-4">
