@@ -1,4 +1,9 @@
-import { ClockIcon, MessageCircleIcon, UsersIcon } from "lucide-react";
+import {
+  BikeIcon,
+  ClockIcon,
+  MessageCircleIcon,
+  UsersIcon,
+} from "lucide-react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +21,7 @@ import { EditGroupDialog } from "@/features/community/components/editGroupDialog
 import { GroupJoinButton } from "@/features/community/components/groupJoinButton";
 import { GroupJoinRequests } from "@/features/community/components/groupJoinRequests";
 import { KickMemberButton } from "@/features/community/components/kickMemberButton";
+import { GroupRides } from "@/features/rides/components/groupRides";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -237,6 +243,21 @@ export default async function GroupPage({
           </div>
 
           <div className="space-y-6">
+            <Card className="border-red-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BikeIcon className="size-5" />
+                  Group rides
+                </CardTitle>
+                <CardDescription>
+                  Upcoming rides posted to this group
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GroupRides groupId={group.id} />
+              </CardContent>
+            </Card>
+
             <Card className="border-red-500/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

@@ -1,7 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellDot, Bike, Check, UserPlus, Users, X } from "lucide-react";
+import {
+  BellDot,
+  Bike,
+  Check,
+  Heart,
+  MessageCircle,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -65,6 +75,18 @@ function notificationText(notification: NotificationItem) {
       return notification.message
         ? `The ride "${notification.message}" was cancelled.`
         : `A ride you joined was cancelled.`;
+    case NotificationType.GROUP_RIDE_CREATED:
+      return notification.message
+        ? `${name} posted the ride "${notification.message}" to your group.`
+        : `${name} posted a ride to your group.`;
+    case NotificationType.POST_LIKED:
+      return notification.message
+        ? `${name} liked your post "${notification.message}".`
+        : `${name} liked your post.`;
+    case NotificationType.POST_COMMENTED:
+      return notification.message
+        ? `${name} commented on your post "${notification.message}".`
+        : `${name} commented on your post.`;
     case NotificationType.RIDE_JOIN_REQUEST:
       return notification.message
         ? `${name} asked to join your ride "${notification.message}".`
@@ -104,22 +126,51 @@ function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
   }
   if (
     type === NotificationType.RIDE_JOIN_REQUEST ||
-    type === NotificationType.RIDE_UPDATED
+    type === NotificationType.RIDE_UPDATED ||
+    type === NotificationType.GROUP_RIDE_CREATED
   ) {
     return <Bike className="size-4 text-red-500" />;
+  }
+  if (type === NotificationType.POST_LIKED) {
+    return <Heart className="size-4 text-red-500" />;
+  }
+  if (type === NotificationType.POST_COMMENTED) {
+    return <MessageCircle className="size-4 text-red-500" />;
   }
   return <UserPlus className="size-4 text-red-500" />;
 }
 
-function NotificationRow({ notification }: { notification: NotificationItem }) {
-  const actor = notification.actor;
+function notificationHref(notification: NotificationItem): string | null {
+  const { targetType, targetId } = notification;
+  if (targetType === "Ride" && targetId) {
+    return `/dashboard/community-rides/${targetId}`;
+  }
+  if (targetType === "Group" && targetId) {
+    return `/dashboard/community/g/${targetId}`;
+  }
+  // Follows carry no target — link to the actor's rider profile instead.
+  if (
+    notification.type === NotificationType.USER_FOLLOWED &&
+    notification.actor
+  ) {
+    return `/dashboard/community/u/${notification.actor.id}`;
+  }
+  // Post notifications have no permalink target (posts live in the feed).
+  return null;
+}
 
-  return (
-    <div
-      className={`flex items-start gap-3 rounded-lg p-3 transition ${
-        notification.read ? "" : "bg-red-500/5"
-      }`}
-    >
+function NotificationRow({
+  notification,
+  onNavigate,
+}: {
+  notification: NotificationItem;
+  onNavigate: () => void;
+}) {
+  const actor = notification.actor;
+  const href = notificationHref(notification);
+
+  const body = (
+    <>
       <div className="relative shrink-0">
         <Avatar className="size-9">
           <AvatarImage src={actor?.image ?? undefined} alt={actor?.name} />
@@ -142,7 +193,25 @@ function NotificationRow({ notification }: { notification: NotificationItem }) {
       {notification.read ? null : (
         <span className="mt-1 size-2 shrink-0 rounded-full bg-red-500" />
       )}
-    </div>
+    </>
+  );
+
+  const className = `flex items-start gap-3 rounded-lg p-3 transition ${
+    notification.read ? "" : "bg-red-500/5"
+  }`;
+
+  if (!href) {
+    return <div className={className}>{body}</div>;
+  }
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={`${className} hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500`}
+    >
+      {body}
+    </Link>
   );
 }
 
@@ -235,6 +304,7 @@ const NotificationSheet = () => {
               <NotificationRow
                 key={notification.id}
                 notification={notification}
+                onNavigate={() => setOpen(false)}
               />
             ))
           )}

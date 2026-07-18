@@ -1,6 +1,9 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth/guards";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
+import { NotificationType, Notifier } from "@/features/notification";
 import { prisma } from "@/lib/prisma";
 import { addCommentSchema } from "../schemas";
 import type { PostComment } from "../types";
@@ -29,7 +32,7 @@ export async function addPostComment(
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { id: true },
+    select: { id: true, title: true, authorId: true },
   });
   if (!post) {
     return { success: false, error: "Post not found." };
@@ -46,6 +49,26 @@ export async function addPostComment(
         select: { id: true, name: true, username: true, image: true },
       },
     },
+  });
+
+  await Logger.log(
+    ActivityAction.POST_COMMENTED,
+    `${session.user.email} commented on the post "${post.title}".`,
+    {
+      actorId: session.user.id,
+      targetUserId: post.authorId,
+      targetType: "Post",
+      targetId: post.id,
+    },
+  );
+
+  await Notifier.push({
+    type: NotificationType.POST_COMMENTED,
+    userId: post.authorId,
+    actorId: session.user.id,
+    targetType: "Post",
+    targetId: post.id,
+    message: post.title,
   });
 
   return {

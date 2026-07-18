@@ -1,6 +1,9 @@
 "use server";
 
 import { getCurrentUser } from "@/features/auth/guards";
+import { Logger } from "@/features/logger";
+import { ActivityAction } from "@/features/logger/logger";
+import { NotificationType, Notifier } from "@/features/notification";
 import { prisma } from "@/lib/prisma";
 
 type Result =
@@ -20,7 +23,7 @@ export async function togglePostLike(postId: string): Promise<Result> {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { id: true },
+    select: { id: true, title: true, authorId: true },
   });
   if (!post) {
     return { success: false, error: "Post not found." };
@@ -35,11 +38,39 @@ export async function togglePostLike(postId: string): Promise<Result> {
   if (existing) {
     await prisma.postLike.delete({ where: { id: existing.id } });
     liked = false;
+    // Undo the unseen like notification so the author isn't spammed.
+    await Notifier.remove({
+      type: NotificationType.POST_LIKED,
+      userId: post.authorId,
+      actorId: session.user.id,
+      targetType: "Post",
+      targetId: post.id,
+    });
   } else {
     await prisma.postLike.create({
       data: { postId, userId: session.user.id },
     });
     liked = true;
+
+    await Logger.log(
+      ActivityAction.POST_LIKED,
+      `${session.user.email} liked the post "${post.title}".`,
+      {
+        actorId: session.user.id,
+        targetUserId: post.authorId,
+        targetType: "Post",
+        targetId: post.id,
+      },
+    );
+
+    await Notifier.push({
+      type: NotificationType.POST_LIKED,
+      userId: post.authorId,
+      actorId: session.user.id,
+      targetType: "Post",
+      targetId: post.id,
+      message: post.title,
+    });
   }
 
   const likeCount = await prisma.postLike.count({ where: { postId } });

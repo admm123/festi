@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/features/auth/guards";
 import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
+import { NotificationType, Notifier } from "@/features/notification";
 import { prisma } from "@/lib/prisma";
 import { fetchRoute } from "../lib/brouter";
 import { reverseGeocode } from "../lib/geocode";
@@ -42,7 +43,22 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     pace,
     difficulty,
     maxParticipants,
+    groupId,
   } = parsed.data;
+
+  // Group rides require the creator to be an approved member of the group.
+  if (groupId) {
+    const membership = await prisma.groupMember.findFirst({
+      where: { groupId, userId: session.user.id, status: "APPROVED" },
+      select: { id: true },
+    });
+    if (!membership) {
+      return {
+        success: false,
+        error: "You must be a member of that group to post a ride to it.",
+      };
+    }
+  }
 
   // Only one ride per creator per calendar day.
   const dayStart = new Date(startTime);
@@ -103,6 +119,7 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
       pace: pace ?? null,
       difficulty: difficulty ?? null,
       maxParticipants: maxParticipants ?? null,
+      groupId: groupId ?? null,
     },
   });
 
@@ -119,9 +136,35 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
         title: ride.title,
         distance: ride.distance,
         elevationGain: ride.elevationGain,
+        groupId: ride.groupId,
       },
     },
   );
+
+  // Let the other approved group members know a ride was posted to their group.
+  if (ride.groupId) {
+    const members = await prisma.groupMember.findMany({
+      where: {
+        groupId: ride.groupId,
+        status: "APPROVED",
+        NOT: { userId: session.user.id },
+      },
+      select: { userId: true },
+    });
+
+    await Promise.all(
+      members.map((member) =>
+        Notifier.push({
+          type: NotificationType.GROUP_RIDE_CREATED,
+          userId: member.userId,
+          actorId: session.user.id,
+          targetType: "Ride",
+          targetId: ride.id,
+          message: ride.title,
+        }),
+      ),
+    );
+  }
 
   return {
     success: true,

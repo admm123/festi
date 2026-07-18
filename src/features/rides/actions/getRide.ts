@@ -34,6 +34,9 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
         orderBy: { position: "asc" },
         select: { id: true, url: true, position: true },
       },
+      group: {
+        select: { id: true, name: true },
+      },
     },
   });
 
@@ -98,6 +101,7 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     photoCount: ride.photos.length,
     photos: ride.photos,
     elevationProfile,
+    group: ride.group,
     participants: visibleParticipants.map((participant) => ({
       id: participant.id,
       status: participant.status,

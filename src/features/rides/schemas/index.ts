@@ -68,6 +68,8 @@ export const createRideSchema = z.object({
   pace: ridePaceSchema.nullish(),
   difficulty: rideDifficultySchema.nullish(),
   maxParticipants: maxParticipantsSchema,
+  /** Optional group this ride belongs to. Membership is verified on the server. */
+  groupId: z.string().nullish(),
 });
 
 export type CreateRideInput = z.infer<typeof createRideSchema>;
@@ -102,6 +104,7 @@ export const rideFormSchema = z.object({
   pace: ridePaceSchema.optional(),
   difficulty: rideDifficultySchema.optional(),
   maxParticipants: maxParticipantsFormField,
+  groupId: z.string().nullish(),
 });
 
 export type RideFormValues = z.infer<typeof rideFormSchema>;

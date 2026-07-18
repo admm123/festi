@@ -90,6 +90,7 @@ model Group {
   updatedAt DateTime      @updatedAt
   members   GroupMember[]
   messages GroupMessage[]
+  rides     Ride[]        @relation("GroupRides")
 
   createdBy User @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
 
@@ -214,11 +215,14 @@ enum NotificationType {
   GROUP_JOIN_REQUESTED
   GROUP_JOIN_APPROVED
   GROUP_JOIN_REJECTED
+  GROUP_RIDE_CREATED
   RIDE_JOIN_REQUEST
   RIDE_JOIN_APPROVED
   RIDE_JOIN_REJECTED
   RIDE_UPDATED
   RIDE_CANCELLED
+  POST_LIKED
+  POST_COMMENTED
 }
 
 model Follow {
@@ -270,6 +274,8 @@ enum ActivityAction {
   GROUP_JOIN_REQUESTED
   GROUP_MEMBER_REJECTED
   POST_CREATED
+  POST_LIKED
+  POST_COMMENTED
   OTHER
 }
 
@@ -339,16 +345,19 @@ model Ride {
   maxParticipants Int?
   pace          String?
   difficulty    String?
+  groupId       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   creator      User              @relation("RideCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  group        Group?            @relation("GroupRides", fields: [groupId], references: [id], onDelete: SetNull)
   participants RideParticipant[]
   photos       RidePhoto[]
 
   @@index([creatorId])
   @@index([startTime])
   @@index([status, startTime])
+  @@index([groupId])
   @@map("ride")
 }
 

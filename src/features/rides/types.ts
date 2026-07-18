@@ -91,8 +91,16 @@ export type RidePhotoInfo = {
   position: number;
 };
 
+/** The group a ride was posted to, shown on the ride detail page. */
+export type RideGroupInfo = {
+  id: string;
+  name: string;
+};
+
 export type RideDetail = RideSummary & {
   participants: RideParticipantInfo[];
   photos: RidePhotoInfo[];
   elevationProfile: ElevationPoint[];
+  /** Null when the ride was not posted to a group. */
+  group: RideGroupInfo | null;
 };

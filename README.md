@@ -30,9 +30,11 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Export routes as GPX; upload ride photos.
   - Request to join rides; creators approve or reject participants.
   - Optional pace and difficulty labels, rider caps, and full lifecycle management: creators can edit details (approved riders are notified when the start time moves) or cancel a ride (all participants are notified); riders can leave rides, withdraw pending requests, and re-request after a rejection.
+  - Post rides to a group; members are notified and see upcoming group rides on the group page.
   - Discover upcoming rides with text search and pace/difficulty filters.
 - **Notifications**
-  - In-app notifications for follows, group joins, and ride join requests/approvals/rejections.
+  - In-app notifications for follows, group joins and join requests, ride join requests/approvals/rejections, ride updates and cancellations, new group rides, and post likes/comments.
+  - Notifications link straight to the ride, group, or rider profile they reference.
 - **Admin dashboard**
   - Activity analytics with time-series charts, top actors, recent activity, and anomaly warnings.
   - User management table with role changes and bans.

@@ -1,5 +1,10 @@
 import { format } from "date-fns";
-import { ArrowLeftIcon, CalendarIcon, MapPinIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  CalendarIcon,
+  MapPinIcon,
+  UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +57,14 @@ export default async function RideDetailPage({
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {isCancelled && <Badge variant="destructive">Cancelled</Badge>}
+            {ride.group && (
+              <Badge asChild variant="outline">
+                <Link href={`/dashboard/community/g/${ride.group.id}`}>
+                  <UsersIcon className="size-3" />
+                  {ride.group.name}
+                </Link>
+              </Badge>
+            )}
             {ride.pace && (
               <Badge variant="secondary">{formatPace(ride.pace)}</Badge>
             )}

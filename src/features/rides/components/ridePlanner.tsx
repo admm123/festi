@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { calculateRoute } from "../actions/calculateRoute";
 import { createRide } from "../actions/createRide";
+import { getMyRideGroups } from "../actions/getMyRideGroups";
 import { RIDE_DIFFICULTY_OPTIONS, RIDE_PACE_OPTIONS } from "../lib/format";
 import { type RideFormValues, rideFormSchema } from "../schemas";
 import type {
@@ -129,6 +130,13 @@ export function RidePlanner() {
       startTime: "",
       maxParticipants: "",
     },
+  });
+
+  // Groups the rider can post to — loaded once the details step is reached.
+  const { data: rideGroups = [] } = useQuery({
+    queryKey: ["my-ride-groups"],
+    queryFn: () => getMyRideGroups(),
+    enabled: step === "details",
   });
 
   const calcMutation = useMutation({
@@ -616,6 +624,32 @@ export function RidePlanner() {
                       </p>
                     )}
                   </div>
+
+                  {rideGroups.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="groupId">
+                        Post to a group (optional)
+                      </Label>
+                      <Select
+                        value={watch("groupId") ?? "none"}
+                        onValueChange={(value) =>
+                          setValue("groupId", value === "none" ? null : value)
+                        }
+                      >
+                        <SelectTrigger id="groupId" className="w-full">
+                          <SelectValue placeholder="No group" />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="none">No group</SelectItem>
+                          {rideGroups.map((group) => (
+                            <SelectItem key={group.id} value={group.id}>
+                              {group.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between gap-2">
                     <Button
