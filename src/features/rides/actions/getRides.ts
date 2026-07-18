@@ -6,6 +6,22 @@ import { prisma } from "@/lib/prisma";
 import { type RideFiltersInput, rideFiltersSchema } from "../schemas";
 import type { RideSummary, Waypoint } from "../types";
 
+/** Great-circle distance in kilometres. */
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLng = (lng2 - lng1) * rad;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(a));
+}
+
 /**
  * Returns scheduled rides ordered by start time, with the approved
  * participant count and the current user's join status. Cancelled rides are
@@ -21,6 +37,24 @@ export async function getRides(input?: unknown): Promise<RideSummary[]> {
 
   const parsed = rideFiltersSchema.safeParse(input ?? {});
   const filters: RideFiltersInput = parsed.success ? parsed.data : {};
+
+  // Proximity filter: cheap bounding box in SQL, exact haversine below.
+  // Rides without stored coordinates are excluded when a radius is set.
+  const near =
+    filters.nearLat !== undefined &&
+    filters.nearLng !== undefined &&
+    filters.radiusKm !== undefined
+      ? {
+          lat: filters.nearLat,
+          lng: filters.nearLng,
+          radiusKm: filters.radiusKm,
+        }
+      : null;
+  const latDelta = near ? near.radiusKm / 111.32 : 0;
+  const lngDelta = near
+    ? near.radiusKm /
+      (111.32 * Math.max(Math.cos((near.lat * Math.PI) / 180), 0.01))
+    : 0;
 
   const where: Prisma.RideWhereInput = {
     status: "SCHEDULED",
@@ -40,6 +74,18 @@ export async function getRides(input?: unknown): Promise<RideSummary[]> {
       : {}),
     ...(filters.pace ? { pace: filters.pace } : {}),
     ...(filters.difficulty ? { difficulty: filters.difficulty } : {}),
+    ...(near
+      ? {
+          startLat: {
+            gte: near.lat - latDelta,
+            lte: near.lat + latDelta,
+          },
+          startLng: {
+            gte: near.lng - lngDelta,
+            lte: near.lng + lngDelta,
+          },
+        }
+      : {}),
   };
 
   const rides = await prisma.ride.findMany({
@@ -64,7 +110,17 @@ export async function getRides(input?: unknown): Promise<RideSummary[]> {
     },
   });
 
-  return rides.map((ride) => ({
+  const filtered = near
+    ? rides.filter((ride) => {
+        if (ride.startLat === null || ride.startLng === null) return false;
+        return (
+          haversineKm(near.lat, near.lng, ride.startLat, ride.startLng) <=
+          near.radiusKm
+        );
+      })
+    : rides;
+
+  return filtered.map((ride) => ({
     id: ride.id,
     title: ride.title,
     description: ride.description,

@@ -143,6 +143,8 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
           maxParticipants: maxParticipants ?? null,
           groupId: groupId ?? null,
           recurrenceId,
+          startLat: start.lat,
+          startLng: start.lng,
         },
       }),
     ),

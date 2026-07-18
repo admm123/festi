@@ -351,6 +351,8 @@ model Ride {
   difficulty    String?
   groupId       String?
   recurrenceId  String?
+  startLat      Float?
+  startLng      Float?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

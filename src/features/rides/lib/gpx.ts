@@ -18,9 +18,13 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export function buildGpx(name: string, points: GpxPoint[]): string {
+export function buildGpx(
+  name: string,
+  points: GpxPoint[],
+  time?: Date,
+): string {
   const safeName = escapeXml(name);
-  const time = new Date().toISOString();
+  const timestamp = (time ?? new Date()).toISOString();
 
   const trkpts = points
     .map((point) => {
@@ -36,7 +40,7 @@ export function buildGpx(name: string, points: GpxPoint[]): string {
 <gpx version="1.1" creator="Festi" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>${safeName}</name>
-    <time>${time}</time>
+    <time>${timestamp}</time>
   </metadata>
   <trk>
     <name>${safeName}</name>

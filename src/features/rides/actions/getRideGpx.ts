@@ -26,6 +26,8 @@ export async function getRideGpx(rideId: string): Promise<Result> {
       title: true,
       creatorId: true,
       routeGeometry: true,
+      elevationProfile: true,
+      startTime: true,
       participants: {
         where: { userId: session.user.id },
         select: { status: true },
@@ -47,9 +49,16 @@ export async function getRideGpx(rideId: string): Promise<Result> {
     };
   }
 
-  const points: GpxPoint[] = polyline
-    .decode(ride.routeGeometry)
-    .map(([lat, lng]) => ({ lat, lng }));
+  // Prefer the stored elevation profile (lat/lng + elevation); fall back to
+  // the plain 2D polyline for legacy rides without one.
+  const profile = ride.elevationProfile as
+    | { lat: number; lng: number; elevation: number }[]
+    | null;
+
+  const points: GpxPoint[] =
+    profile && profile.length >= 2
+      ? profile.map((p) => ({ lat: p.lat, lng: p.lng, ele: p.elevation }))
+      : polyline.decode(ride.routeGeometry).map(([lat, lng]) => ({ lat, lng }));
 
   if (points.length < 2) {
     return { success: false, error: "This ride has no route to export." };
@@ -58,6 +67,6 @@ export async function getRideGpx(rideId: string): Promise<Result> {
   return {
     success: true,
     filename: gpxFilename(ride.title),
-    gpx: buildGpx(ride.title, points),
+    gpx: buildGpx(ride.title, points, ride.startTime),
   };
 }

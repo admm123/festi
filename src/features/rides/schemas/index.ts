@@ -180,6 +180,10 @@ export const rideFiltersSchema = z.object({
   pace: ridePaceSchema.optional(),
   difficulty: rideDifficultySchema.optional(),
   includePast: z.boolean().optional(),
+  /** Proximity filter: rides starting within `radiusKm` of (nearLat, nearLng). */
+  nearLat: z.number().min(-90).max(90).optional(),
+  nearLng: z.number().min(-180).max(180).optional(),
+  radiusKm: z.number().min(1).max(500).optional(),
 });
 
 export type RideFiltersInput = z.infer<typeof rideFiltersSchema>;

@@ -1,9 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   BikeIcon,
   CompassIcon,
+  LayoutGridIcon,
+  Loader2Icon,
   NewspaperIcon,
   SparklesIcon,
 } from "lucide-react";
@@ -11,37 +13,39 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getFeed } from "../actions/getFeed";
+import { type FeedCursor, type FeedPage, getFeed } from "../actions/getFeed";
 import type { FeedItem } from "../types";
 import { PostCard } from "./postCard";
 import { RideTimelineCard } from "./rideTimelineCard";
 
-type FeedTab = "posts" | "rides";
+type FeedTab = "all" | "posts" | "rides";
+
+function useFeedQuery(scope: "following" | "discover", enabled = true) {
+  return useInfiniteQuery<FeedPage>({
+    queryKey: ["posts", scope],
+    queryFn: ({ pageParam }) => getFeed(scope, pageParam as FeedCursor),
+    initialPageParam: undefined as FeedCursor | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled,
+  });
+}
 
 export function PostFeed() {
-  const [tab, setTab] = useState<FeedTab>("posts");
+  const [tab, setTab] = useState<FeedTab>("all");
   const [showDiscover, setShowDiscover] = useState(false);
 
-  const {
-    data: following = [],
-    isLoading,
-    isError,
-  } = useQuery<FeedItem[]>({
-    queryKey: ["posts", "following"],
-    queryFn: () => getFeed("following"),
-  });
+  const following = useFeedQuery("following");
+  const discover = useFeedQuery("discover", showDiscover);
 
-  const discover = useQuery<FeedItem[]>({
-    queryKey: ["posts", "discover"],
-    queryFn: () => getFeed("discover"),
-    enabled: showDiscover,
-  });
+  const followingItems = (following.data?.pages ?? []).flatMap((p) => p.items);
+  const discoverItems = (discover.data?.pages ?? []).flatMap((p) => p.items);
 
-  const kind = tab === "posts" ? "post" : "ride";
-  const followingItems = following.filter((item) => item.kind === kind);
-  const discoverItems = (discover.data ?? []).filter(
-    (item) => item.kind === kind,
-  );
+  const kindFilter = (item: FeedItem) =>
+    tab === "all" ||
+    (tab === "posts" ? item.kind === "post" : item.kind === "ride");
+
+  const shownFollowing = followingItems.filter(kindFilter);
+  const shownDiscover = discoverItems.filter(kindFilter);
 
   const switchTab = (next: FeedTab) => {
     setTab(next);
@@ -51,6 +55,10 @@ export function PostFeed() {
   const tabs = (
     <Tabs value={tab} onValueChange={(v) => switchTab(v as FeedTab)}>
       <TabsList>
+        <TabsTrigger value="all">
+          <LayoutGridIcon className="size-4" />
+          All
+        </TabsTrigger>
         <TabsTrigger value="posts">
           <NewspaperIcon className="size-4" />
           Posts
@@ -63,7 +71,7 @@ export function PostFeed() {
     </Tabs>
   );
 
-  if (isLoading) {
+  if (following.isLoading) {
     return (
       <div className="space-y-4">
         {tabs}
@@ -74,7 +82,7 @@ export function PostFeed() {
     );
   }
 
-  if (isError) {
+  if (following.isError) {
     return (
       <div className="space-y-4">
         {tabs}
@@ -85,14 +93,15 @@ export function PostFeed() {
     );
   }
 
-  const emptyLabel = tab === "posts" ? "posts" : "rides";
+  const emptyLabel =
+    tab === "all" ? "posts or rides" : tab === "posts" ? "posts" : "rides";
 
   return (
     <div className="space-y-4">
       {tabs}
 
-      {followingItems.length > 0 ? (
-        <FeedList items={followingItems} />
+      {shownFollowing.length > 0 ? (
+        <FeedList items={shownFollowing} />
       ) : (
         !showDiscover && (
           <EmptyFollowing
@@ -102,7 +111,14 @@ export function PostFeed() {
         )
       )}
 
-      {!showDiscover && followingItems.length > 0 && (
+      {following.hasNextPage && (
+        <LoadMoreButton
+          isPending={following.isFetchingNextPage}
+          onClick={() => following.fetchNextPage()}
+        />
+      )}
+
+      {!showDiscover && !following.hasNextPage && shownFollowing.length > 0 && (
         <DiscoverPrompt onDiscover={() => setShowDiscover(true)} />
       )}
 
@@ -127,15 +143,40 @@ export function PostFeed() {
             <p className="py-8 text-center text-sm text-muted-foreground">
               Something went wrong loading more {emptyLabel}.
             </p>
-          ) : discoverItems.length === 0 ? (
+          ) : shownDiscover.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Nothing else to discover right now.
             </p>
           ) : (
-            <FeedList items={discoverItems} />
+            <>
+              <FeedList items={shownDiscover} />
+              {discover.hasNextPage && (
+                <LoadMoreButton
+                  isPending={discover.isFetchingNextPage}
+                  onClick={() => discover.fetchNextPage()}
+                />
+              )}
+            </>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function LoadMoreButton({
+  isPending,
+  onClick,
+}: {
+  isPending: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex justify-center pt-2">
+      <Button variant="outline" disabled={isPending} onClick={onClick}>
+        {isPending ? <Loader2Icon className="size-4 animate-spin" /> : null}
+        Load more
+      </Button>
     </div>
   );
 }

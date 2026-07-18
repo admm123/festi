@@ -17,8 +17,8 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Follow/unfollow riders with a real-time presence heartbeat.
 - **Social feed**
   - Create posts with a markdown editor and image attachments.
-  - Like and comment on posts.
-  - "For You" timeline combining posts and community rides.
+  - Like and comment on posts (authors are notified).
+  - "For You" timeline combining posts and community rides in one interleaved, cursor-paginated feed.
 - **Groups & chat**
   - Create and join rider groups; owners can require approval for membership and manage pending join requests.
   - Group chat available to members.
@@ -27,13 +27,13 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Plan rides with an interactive route planner.
   - Route calculation through [BRouter](https://brouter.de/) with distance, duration, and elevation gain/loss.
   - Visualize routes on [MapLibre GL](https://maplibre.org/) maps with elevation charts.
-  - Export routes as GPX; upload ride photos.
+  - Export routes as GPX (with elevation data); upload ride photos.
   - Request to join rides; creators approve or reject participants.
   - Optional pace and difficulty labels, rider caps, and full lifecycle management: creators can edit details (approved riders are notified when the start time moves) or cancel a ride (all participants are notified); riders can leave rides, withdraw pending requests, and re-request after a rejection.
   - Weekly recurring rides: create up to 12 weekly instances in one go, cancel single instances or the whole remaining series.
   - Waitlists on full rides: joiners queue automatically and are promoted to a pending request when a spot frees.
   - Post rides to a group; members are notified and see upcoming group rides on the group page.
-  - Discover upcoming rides with text search and pace/difficulty filters.
+  - Discover upcoming rides with text search, pace/difficulty filters, and a proximity filter ("near this place", 10–100 km).
 - **Notifications**
   - In-app notifications for follows, group joins and join requests, ride join requests/approvals/rejections, ride updates and cancellations, new group rides, and post likes/comments.
   - Notifications link straight to the ride, group, or rider profile they reference.

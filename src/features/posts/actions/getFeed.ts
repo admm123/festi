@@ -7,16 +7,27 @@ import type { FeedItem, PostSummary } from "../types";
 
 export type FeedScope = "following" | "discover";
 
+/** Composite cursor: creation time of the last returned item plus its id. */
+export type FeedCursor = { createdAt: string; id: string };
+
+export type FeedPage = {
+  items: FeedItem[];
+  /** Null when there are no older items. */
+  nextCursor: FeedCursor | null;
+};
+
 /**
  * Returns the combined timeline: posts and rides interleaved and sorted by
- * creation time (newest first).
+ * creation time (newest first), paginated with a (createdAt, id) cursor.
  *
  * - `following` (default): content from people you follow, plus your own.
  * - `discover`: content from everyone you don't follow (and not your own).
  */
 export async function getFeed(
   scope: FeedScope = "following",
-): Promise<FeedItem[]> {
+  cursor?: FeedCursor,
+  limit = 20,
+): Promise<FeedPage> {
   const session = await getCurrentUser();
   if (!session) {
     throw new Error("You must be signed in.");
@@ -36,11 +47,21 @@ export async function getFeed(
       ? { in: [...followingIds, userId] }
       : { notIn: [...followingIds, userId] };
 
+  const cursorFilter = cursor
+    ? {
+        OR: [
+          { createdAt: { lt: new Date(cursor.createdAt) } },
+          { createdAt: new Date(cursor.createdAt), id: { lt: cursor.id } },
+        ],
+      }
+    : {};
+
+  // One extra row per source tells us whether older items remain.
   const [posts, rides] = await Promise.all([
     prisma.post.findMany({
-      where: { authorId: authorFilter },
-      orderBy: { createdAt: "desc" },
-      take: 50,
+      where: { authorId: authorFilter, ...cursorFilter },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
       include: {
         author: {
           select: { id: true, name: true, username: true, image: true },
@@ -59,9 +80,9 @@ export async function getFeed(
       },
     }),
     prisma.ride.findMany({
-      where: { creatorId: authorFilter },
-      orderBy: { createdAt: "desc" },
-      take: 50,
+      where: { creatorId: authorFilter, ...cursorFilter },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
       include: {
         creator: {
           select: { id: true, name: true, username: true, image: true },
@@ -124,7 +145,22 @@ export async function getFeed(
     return { kind: "ride", createdAt: summary.createdAt, ride: summary };
   });
 
-  return [...postItems, ...rideItems].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
+  const merged = [...postItems, ...rideItems].sort((a, b) =>
+    b.createdAt === a.createdAt
+      ? getItemId(b).localeCompare(getItemId(a))
+      : b.createdAt.localeCompare(a.createdAt),
   );
+
+  const items = merged.slice(0, limit);
+  const last = items[items.length - 1];
+  const nextCursor =
+    merged.length > limit && last
+      ? { createdAt: last.createdAt, id: getItemId(last) }
+      : null;
+
+  return { items, nextCursor };
+}
+
+function getItemId(item: FeedItem): string {
+  return item.kind === "post" ? item.post.id : item.ride.id;
 }
