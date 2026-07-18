@@ -6,7 +6,6 @@ import {
   BikeIcon,
   HomeIcon,
   SettingsIcon,
-  ShieldIcon,
   UserCogIcon,
   UserIcon,
   UsersIcon,
@@ -59,11 +58,6 @@ const adminItems: NavItem[] = [
     label: "User Management",
     href: "/dashboard/admin/users",
     icon: UserCogIcon,
-  },
-  {
-    label: "Admin Settings",
-    href: "/dashboard/admin/settings",
-    icon: ShieldIcon,
   },
 ];
 

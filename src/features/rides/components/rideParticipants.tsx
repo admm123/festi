@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { markAttendance } from "../actions/markAttendance";
 import { respondToJoinRequest } from "../actions/respondToJoinRequest";
 import type { RideCreator, RideParticipantInfo } from "../types";
 
@@ -16,6 +17,8 @@ type RideParticipantsProps = {
   participants: RideParticipantInfo[];
   /** Null means unlimited spots. */
   maxParticipants: number | null;
+  /** Past rides let the creator mark who actually showed up. */
+  isPast?: boolean;
 };
 
 function initials(name: string): string {
@@ -54,6 +57,7 @@ export function RideParticipants({
   creator,
   participants,
   maxParticipants,
+  isPast = false,
 }: RideParticipantsProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -64,6 +68,24 @@ export function RideParticipants({
         input.participantId,
         input.approve,
       );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["rides"] });
+      router.refresh();
+      toast.success(result.message);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const attendanceMutation = useMutation({
+    mutationFn: async (input: { participantId: string; attended: boolean }) => {
+      const result = await markAttendance(input.participantId, input.attended);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -192,17 +214,82 @@ export function RideParticipants({
               {approved.length}/{maxParticipants} spots filled
             </span>
           )}
+          {isPast && approved.some((p) => p.attended !== null) && (
+            <span className="ml-2 font-normal text-muted-foreground">
+              {approved.filter((p) => p.attended === true).length} attended
+            </span>
+          )}
         </h3>
-        <ul className="flex flex-wrap gap-2">
-          <li key={creator.id}>
-            <RiderChip user={creator} host />
-          </li>
-          {approved.map((participant) => (
-            <li key={participant.id}>
-              <RiderChip user={participant.user} />
+        {isPast && isCreator ? (
+          <ul className="flex flex-col gap-2">
+            <li>
+              <RiderChip user={creator} host />
             </li>
-          ))}
-        </ul>
+            {approved.map((participant) => (
+              <li
+                key={participant.id}
+                className="flex items-center gap-3 rounded-lg border p-2"
+              >
+                <Avatar className="size-8">
+                  <AvatarImage src={participant.user.image ?? undefined} />
+                  <AvatarFallback>
+                    {initials(participant.user.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {participant.user.username ?? participant.user.name}
+                </span>
+                <Button
+                  size="icon-sm"
+                  variant={
+                    participant.attended === true ? "default" : "outline"
+                  }
+                  disabled={attendanceMutation.isPending}
+                  onClick={() =>
+                    attendanceMutation.mutate({
+                      participantId: participant.id,
+                      attended: true,
+                    })
+                  }
+                  aria-label={`Mark ${participant.user.name} as attended`}
+                >
+                  {attendanceMutation.isPending ? (
+                    <Loader2Icon className="size-4 animate-spin" />
+                  ) : (
+                    <CheckIcon className="size-4" />
+                  )}
+                </Button>
+                <Button
+                  size="icon-sm"
+                  variant={
+                    participant.attended === false ? "destructive" : "outline"
+                  }
+                  disabled={attendanceMutation.isPending}
+                  onClick={() =>
+                    attendanceMutation.mutate({
+                      participantId: participant.id,
+                      attended: false,
+                    })
+                  }
+                  aria-label={`Mark ${participant.user.name} as no-show`}
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            <li key={creator.id}>
+              <RiderChip user={creator} host />
+            </li>
+            {approved.map((participant) => (
+              <li key={participant.id}>
+                <RiderChip user={participant.user} />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

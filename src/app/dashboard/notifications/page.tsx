@@ -1,4 +1,3 @@
-import { BellIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -6,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { NotificationHistory } from "@/features/notification/components/notificationHistory";
 
 export default function NotificationsPage() {
   return (
@@ -13,27 +13,18 @@ export default function NotificationsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
         <p className="text-muted-foreground">
-          Manage your notification preferences
+          Your full notification history — click one to jump to the ride, group,
+          or rider
         </p>
       </div>
 
       <Card className="border-red-500/20">
         <CardHeader>
-          <CardTitle>Notification Settings</CardTitle>
-          <CardDescription>
-            Choose what you want to be notified about
-          </CardDescription>
+          <CardTitle>History</CardTitle>
+          <CardDescription>Newest first</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <BellIcon className="mb-4 size-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">
-              Notification settings coming soon
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Email, push, and in-app notification controls
-            </p>
-          </div>
+          <NotificationHistory />
         </CardContent>
       </Card>
     </div>

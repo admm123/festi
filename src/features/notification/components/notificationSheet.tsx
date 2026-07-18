@@ -48,7 +48,7 @@ function formatRelativeTime(iso: string) {
   );
 }
 
-function notificationText(notification: NotificationItem) {
+export function notificationText(notification: NotificationItem) {
   const name = notification.actor?.name ?? "Someone";
   switch (notification.type) {
     case NotificationType.USER_FOLLOWED:
@@ -108,7 +108,7 @@ function notificationText(notification: NotificationItem) {
   }
 }
 
-function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
+export function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
   if (
     type === NotificationType.GROUP_JOINED ||
     type === NotificationType.GROUP_JOIN_REQUESTED
@@ -145,7 +145,9 @@ function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
   return <UserPlus className="size-4 text-red-500" />;
 }
 
-function notificationHref(notification: NotificationItem): string | null {
+export function notificationHref(
+  notification: NotificationItem,
+): string | null {
   const { targetType, targetId } = notification;
   if (targetType === "Ride" && targetId) {
     return `/dashboard/community-rides/${targetId}`;
@@ -164,7 +166,7 @@ function notificationHref(notification: NotificationItem): string | null {
   return null;
 }
 
-function NotificationRow({
+export function NotificationRow({
   notification,
   onNavigate,
 }: {

@@ -93,6 +93,7 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     difficulty: (ride.difficulty ?? null) as RideDetail["difficulty"],
     maxParticipants: ride.maxParticipants,
     recurrenceId: ride.recurrenceId,
+    isPublic: ride.isPublic,
     createdAt: ride.createdAt.toISOString(),
     creator: ride.creator,
     participantCount: ride.participants.filter((p) => p.status === "APPROVED")
@@ -106,6 +107,7 @@ export async function getRide(rideId: string): Promise<RideDetail | null> {
     participants: visibleParticipants.map((participant) => ({
       id: participant.id,
       status: participant.status,
+      attended: participant.attended,
       createdAt: participant.createdAt.toISOString(),
       user: participant.user,
     })),

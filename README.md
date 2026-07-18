@@ -32,11 +32,13 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Optional pace and difficulty labels, rider caps, and full lifecycle management: creators can edit details (approved riders are notified when the start time moves) or cancel a ride (all participants are notified); riders can leave rides, withdraw pending requests, and re-request after a rejection.
   - Weekly recurring rides: create up to 12 weekly instances in one go, cancel single instances or the whole remaining series.
   - Waitlists on full rides: joiners queue automatically and are promoted to a pending request when a spot frees.
+  - After the ride, creators mark who actually showed up (attendance / no-shows).
+  - Every ride has a shareable public page (creators can disable it) with route, stats, and a join CTA for logged-out visitors.
   - Post rides to a group; members are notified and see upcoming group rides on the group page.
   - Discover upcoming rides with text search, pace/difficulty filters, and a proximity filter ("near this place", 10–100 km).
 - **Notifications**
   - In-app notifications for follows, group joins and join requests, ride join requests/approvals/rejections, ride updates and cancellations, new group rides, and post likes/comments.
-  - Notifications link straight to the ride, group, or rider profile they reference.
+  - Notifications link straight to the ride, group, or rider profile they reference; a full-page history with pagination lives under `/dashboard/notifications`.
 - **Admin dashboard**
   - Activity analytics with time-series charts, top actors, recent activity, and anomaly warnings.
   - User management table with role changes and bans.

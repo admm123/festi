@@ -16,6 +16,7 @@ import { CancelRideButton } from "@/features/rides/components/cancelRideButton";
 import { DeleteRideButton } from "@/features/rides/components/deleteRideButton";
 import { EditRideDialog } from "@/features/rides/components/editRideDialog";
 import { GpxDownloadButton } from "@/features/rides/components/gpxDownloadButton";
+import { PublicRideLink } from "@/features/rides/components/publicRideLink";
 import { RideJoinButton } from "@/features/rides/components/rideJoinButton";
 import { RideParticipants } from "@/features/rides/components/rideParticipants";
 import { RidePhotos } from "@/features/rides/components/ridePhotos";
@@ -106,6 +107,10 @@ export default async function RideDetailPage({
         </div>
       </div>
 
+      {ride.isCreator && (
+        <PublicRideLink rideId={ride.id} isPublic={ride.isPublic} />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
@@ -157,6 +162,7 @@ export default async function RideDetailPage({
             creator={ride.creator}
             participants={ride.participants}
             maxParticipants={ride.maxParticipants}
+            isPast={new Date(ride.startTime).getTime() < Date.now()}
           />
 
           <RidePhotos

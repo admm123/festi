@@ -87,6 +87,8 @@ export type RideSummary = {
 export type RideParticipantInfo = {
   id: string;
   status: RideParticipantStatus;
+  /** null = attendance not marked yet (only meaningful on past rides). */
+  attended: boolean | null;
   createdAt: string;
   user: RideCreator;
 };
@@ -109,4 +111,6 @@ export type RideDetail = RideSummary & {
   elevationProfile: ElevationPoint[];
   /** Null when the ride was not posted to a group. */
   group: RideGroupInfo | null;
+  /** Whether the ride has a public (logged-out) page at /rides/[id]. */
+  isPublic: boolean;
 };
