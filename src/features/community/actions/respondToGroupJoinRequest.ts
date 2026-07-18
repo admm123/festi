@@ -6,6 +6,7 @@ import { Logger } from "@/features/logger";
 import { ActivityAction } from "@/features/logger/logger";
 import { NotificationType, Notifier } from "@/features/notification";
 import { prisma } from "@/lib/prisma";
+import { canManageGroup } from "../lib/groupRoles";
 import {
   type RespondToGroupJoinRequestData,
   respondToGroupJoinRequestSchema,
@@ -41,10 +42,12 @@ export async function respondToGroupJoinRequest(
     return { success: false as const, error: "Group not found." };
   }
 
-  if (group.createdById !== session.user.id) {
+  // Owners and moderators respond to join requests.
+  if (!(await canManageGroup(groupId, session.user.id))) {
     return {
       success: false as const,
-      error: "Only the group owner can respond to join requests.",
+      error:
+        "Only the group owner and moderators can respond to join requests.",
     };
   }
 

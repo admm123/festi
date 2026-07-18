@@ -1,7 +1,9 @@
 import {
   BikeIcon,
   ClockIcon,
+  MegaphoneIcon,
   MessageCircleIcon,
+  RouteIcon,
   UsersIcon,
 } from "lucide-react";
 import { headers } from "next/headers";
@@ -18,10 +20,13 @@ import {
 import { GroupChat } from "@/features/chat/components/groupChat";
 import { DeleteGroupDialog } from "@/features/community/components/deleteGroupDialog";
 import { EditGroupDialog } from "@/features/community/components/editGroupDialog";
+import { GroupAnnouncements } from "@/features/community/components/groupAnnouncements";
 import { GroupJoinButton } from "@/features/community/components/groupJoinButton";
 import { GroupJoinRequests } from "@/features/community/components/groupJoinRequests";
 import { KickMemberButton } from "@/features/community/components/kickMemberButton";
+import { MemberRoleButton } from "@/features/community/components/memberRoleButton";
 import { GroupRides } from "@/features/rides/components/groupRides";
+import { GroupRoutes } from "@/features/routes/components/groupRoutes";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -72,38 +77,45 @@ export default async function GroupPage({
 
   const isOwner = session?.user.id === group.createdById;
 
-  const [ownMembership, pendingMembers] = await Promise.all([
-    session
-      ? prisma.groupMember.findUnique({
-          where: {
-            userId_groupId: {
-              userId: session.user.id,
-              groupId: id,
+  const ownMembership = session
+    ? await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: {
+            userId: session.user.id,
+            groupId: id,
+          },
+        },
+        select: {
+          status: true,
+          role: true,
+        },
+      })
+    : null;
+
+  // Join requests are visible to the owner and moderators — never to anyone
+  // else (they never leave the server otherwise).
+  const canManage =
+    isOwner ||
+    (ownMembership?.status === "APPROVED" &&
+      ownMembership.role === "moderator");
+
+  const pendingMembers = canManage
+    ? await prisma.groupMember.findMany({
+        where: { groupId: id, status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              image: true,
             },
           },
-          select: {
-            status: true,
-          },
-        })
-      : null,
-    isOwner
-      ? prisma.groupMember.findMany({
-          where: { groupId: id, status: "PENDING" },
-          orderBy: { createdAt: "asc" },
-          select: {
-            id: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                image: true,
-              },
-            },
-          },
-        })
-      : [],
-  ]);
+        },
+      })
+    : [];
 
   const isMember = ownMembership?.status === "APPROVED";
 
@@ -167,7 +179,7 @@ export default async function GroupPage({
       {isMember ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            {isOwner && (
+            {canManage && (
               <Card className="border-red-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -191,6 +203,21 @@ export default async function GroupPage({
                 </CardContent>
               </Card>
             )}
+
+            <Card className="border-red-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MegaphoneIcon className="size-5" />
+                  Announcements
+                </CardTitle>
+                <CardDescription>
+                  News from the owner and moderators
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GroupAnnouncements groupId={group.id} canPost={canManage} />
+              </CardContent>
+            </Card>
 
             <Card className="border-red-500/20">
               <CardHeader>
@@ -227,10 +254,18 @@ export default async function GroupPage({
                     </div>
 
                     {isOwner && member.user.id !== group.createdById ? (
-                      <KickMemberButton
-                        groupId={group.id}
-                        memberId={member.id}
-                      />
+                      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                        <MemberRoleButton
+                          groupId={group.id}
+                          memberId={member.id}
+                          currentRole={member.role}
+                          memberName={member.user.name}
+                        />
+                        <KickMemberButton
+                          groupId={group.id}
+                          memberId={member.id}
+                        />
+                      </div>
                     ) : (
                       <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs capitalize text-muted-foreground">
                         {member.role}
@@ -255,6 +290,21 @@ export default async function GroupPage({
               </CardHeader>
               <CardContent>
                 <GroupRides groupId={group.id} />
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RouteIcon className="size-5" />
+                  Route library
+                </CardTitle>
+                <CardDescription>
+                  Saved routes any member can plan a ride from
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GroupRoutes groupId={group.id} />
               </CardContent>
             </Card>
 

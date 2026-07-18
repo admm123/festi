@@ -23,6 +23,7 @@ import { RidePhotos } from "@/features/rides/components/ridePhotos";
 import { RideRoutePanel } from "@/features/rides/components/rideRoutePanel";
 import { RouteStatsPanel } from "@/features/rides/components/routeStatsPanel";
 import { formatDifficulty, formatPace } from "@/features/rides/lib/format";
+import { SaveRouteDialog } from "@/features/routes/components/saveRouteDialog";
 
 export default async function RideDetailPage({
   params,
@@ -94,7 +95,10 @@ export default async function RideDetailPage({
           )}
           {ride.isCreator && <DeleteRideButton rideId={ride.id} />}
           {(ride.isCreator || ride.participantStatus === "APPROVED") && (
-            <GpxDownloadButton rideId={ride.id} />
+            <>
+              <GpxDownloadButton rideId={ride.id} />
+              <SaveRouteDialog rideId={ride.id} rideTitle={ride.title} />
+            </>
           )}
           <RideJoinButton
             rideId={ride.id}

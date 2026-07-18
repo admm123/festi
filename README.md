@@ -21,6 +21,8 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - "For You" timeline combining posts and community rides in one interleaved, cursor-paginated feed.
 - **Groups & chat**
   - Create and join rider groups; owners can require approval for membership and manage pending join requests.
+  - Owner-appointed moderators help manage join requests, members, and announcements.
+  - Group announcements notify all members; a shared route library lets members plan rides from saved routes.
   - Group chat available to members.
   - Direct messaging between mutually-followed riders.
 - **Community rides**
@@ -35,6 +37,7 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - After the ride, creators mark who actually showed up (attendance / no-shows).
   - Every ride has a shareable public page (creators can disable it) with route, stats, and a join CTA for logged-out visitors.
   - Post rides to a group; members are notified and see upcoming group rides on the group page.
+  - Save any ride's route to your personal or a group's route library and plan new rides from it.
   - Discover upcoming rides with text search, pace/difficulty filters, and a proximity filter ("near this place", 10–100 km).
 - **Notifications**
   - In-app notifications for follows, group joins and join requests, ride join requests/approvals/rejections, ride updates and cancellations, new group rides, and post likes/comments.

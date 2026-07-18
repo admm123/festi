@@ -6,6 +6,7 @@ import {
   Bike,
   Check,
   Heart,
+  Megaphone,
   MessageCircle,
   UserPlus,
   Users,
@@ -83,6 +84,10 @@ export function notificationText(notification: NotificationItem) {
       return notification.message
         ? `${name} posted the ride "${notification.message}" to your group.`
         : `${name} posted a ride to your group.`;
+    case NotificationType.GROUP_ANNOUNCEMENT:
+      return notification.message
+        ? `${name} posted an announcement in "${notification.message}".`
+        : `${name} posted an announcement in your group.`;
     case NotificationType.POST_LIKED:
       return notification.message
         ? `${name} liked your post "${notification.message}".`
@@ -141,6 +146,9 @@ export function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
   }
   if (type === NotificationType.POST_COMMENTED) {
     return <MessageCircle className="size-4 text-red-500" />;
+  }
+  if (type === NotificationType.GROUP_ANNOUNCEMENT) {
+    return <Megaphone className="size-4 text-red-500" />;
   }
   return <UserPlus className="size-4 text-red-500" />;
 }

@@ -103,11 +103,27 @@ function StepIndicator({ current }: { current: Step }) {
   );
 }
 
-export function RidePlanner() {
+export function RidePlanner({
+  initialRoute = null,
+}: {
+  /** Preloaded waypoints from a library route (skips the start step). */
+  initialRoute?: { name: string; waypoints: Waypoint[] } | null;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("start");
-  const [startPlace, setStartPlace] = useState<PlaceResult | null>(null);
-  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [step, setStep] = useState<Step>(initialRoute ? "build" : "start");
+  const [startPlace, setStartPlace] = useState<PlaceResult | null>(() =>
+    initialRoute?.waypoints[0]
+      ? {
+          id: "library",
+          name: initialRoute.name,
+          lat: initialRoute.waypoints[0].lat,
+          lng: initialRoute.waypoints[0].lng,
+        }
+      : null,
+  );
+  const [waypoints, setWaypoints] = useState<Waypoint[]>(
+    () => initialRoute?.waypoints ?? [],
+  );
   const [profile, setProfile] = useState<RouteProfile>("trekking");
   const [roundTrip, setRoundTrip] = useState(false);
   const [route, setRoute] = useState<RouteResult | null>(null);

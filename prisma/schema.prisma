@@ -52,6 +52,8 @@ model User {
 
   rides              Ride[]            @relation("RideCreator")
   rideParticipations RideParticipant[]
+  routes             Route[]           @relation("RouteCreator")
+  announcements      GroupAnnouncement[] @relation("AnnouncementAuthor")
 
   posts Post[] @relation("PostAuthor")
   postLikes    PostLike[]
@@ -91,6 +93,8 @@ model Group {
   members   GroupMember[]
   messages GroupMessage[]
   rides     Ride[]        @relation("GroupRides")
+  routes    Route[]       @relation("GroupRoutes")
+  announcements GroupAnnouncement[] @relation("GroupAnnouncements")
 
   createdBy User @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
 
@@ -216,6 +220,7 @@ enum NotificationType {
   GROUP_JOIN_APPROVED
   GROUP_JOIN_REJECTED
   GROUP_RIDE_CREATED
+  GROUP_ANNOUNCEMENT
   RIDE_JOIN_REQUEST
   RIDE_JOIN_APPROVED
   RIDE_JOIN_REJECTED
@@ -277,6 +282,10 @@ enum ActivityAction {
   RIDE_ATTENDANCE_MARKED
   GROUP_JOIN_REQUESTED
   GROUP_MEMBER_REJECTED
+  GROUP_MEMBER_ROLE_CHANGED
+  GROUP_ANNOUNCEMENT_CREATED
+  ROUTE_SAVED
+  ROUTE_DELETED
   POST_CREATED
   POST_LIKED
   POST_COMMENTED
@@ -382,6 +391,44 @@ model RidePhoto {
 
   @@index([rideId])
   @@map("ride_photo")
+}
+
+model Route {
+  id            String   @id @default(cuid())
+  creatorId     String
+  groupId       String?
+  name          String
+  description   String?
+  distance      Float
+  duration      Int
+  elevationGain Int      @default(0)
+  elevationLoss Int      @default(0)
+  routeGeometry String
+  waypoints     Json
+  elevationProfile Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  creator User   @relation("RouteCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  group   Group? @relation("GroupRoutes", fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([groupId])
+  @@map("route")
+}
+
+model GroupAnnouncement {
+  id        String   @id @default(cuid())
+  groupId   String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  group  Group @relation("GroupAnnouncements", fields: [groupId], references: [id], onDelete: Cascade)
+  author User  @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("group_announcement")
 }
 
 model RideParticipant {
