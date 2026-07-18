@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BanIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -16,15 +17,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { cancelRide } from "../actions/cancelRide";
 
-export function CancelRideButton({ rideId }: { rideId: string }) {
+export function CancelRideButton({
+  rideId,
+  hasSeries = false,
+}: {
+  rideId: string;
+  /** True when the ride belongs to a weekly recurring series. */
+  hasSeries?: boolean;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [cancelSeries, setCancelSeries] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const result = await cancelRide(rideId);
+      const result = await cancelRide(rideId, cancelSeries);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -53,9 +64,22 @@ export function CancelRideButton({ rideId }: { rideId: string }) {
           <AlertDialogTitle>Cancel this ride?</AlertDialogTitle>
           <AlertDialogDescription>
             The ride stays visible but is marked as cancelled. Everyone who
-            requested to join or was approved will be notified.
+            requested to join, was approved, or is on the waitlist will be
+            notified.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {hasSeries && (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="cancel-series"
+              checked={cancelSeries}
+              onCheckedChange={(checked) => setCancelSeries(checked === true)}
+            />
+            <Label htmlFor="cancel-series" className="text-sm font-normal">
+              Also cancel all future rides in this weekly series
+            </Label>
+          </div>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel>Keep ride</AlertDialogCancel>
           <AlertDialogAction

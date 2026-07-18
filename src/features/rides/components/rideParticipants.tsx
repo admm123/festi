@@ -81,6 +81,7 @@ export function RideParticipants({
 
   const approved = participants.filter((p) => p.status === "APPROVED");
   const pending = participants.filter((p) => p.status === "PENDING");
+  const waitlisted = participants.filter((p) => p.status === "WAITLISTED");
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,6 +132,49 @@ export function RideParticipants({
                     })
                   }
                   aria-label="Decline"
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isCreator && waitlisted.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">
+            Waitlist
+            <span className="ml-2 font-normal text-muted-foreground">
+              moved up automatically when a spot frees
+            </span>
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {waitlisted.map((participant) => (
+              <li
+                key={participant.id}
+                className="flex items-center gap-3 rounded-lg border p-2"
+              >
+                <Avatar className="size-8">
+                  <AvatarImage src={participant.user.image ?? undefined} />
+                  <AvatarFallback>
+                    {initials(participant.user.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {participant.user.username ?? participant.user.name}
+                </span>
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onClick={() =>
+                    mutation.mutate({
+                      participantId: participant.id,
+                      approve: false,
+                    })
+                  }
+                  aria-label="Remove from waitlist"
                 >
                   <XIcon className="size-4" />
                 </Button>

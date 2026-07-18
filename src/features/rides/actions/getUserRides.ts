@@ -50,6 +50,7 @@ export async function getUserRides(userId: string): Promise<RideSummary[]> {
     pace: (ride.pace ?? null) as RideSummary["pace"],
     difficulty: (ride.difficulty ?? null) as RideSummary["difficulty"],
     maxParticipants: ride.maxParticipants,
+    recurrenceId: ride.recurrenceId,
     createdAt: ride.createdAt.toISOString(),
     creator: ride.creator,
     participantCount: ride._count.participants,

@@ -39,6 +39,17 @@ export const calculateRouteSchema = z.object({
 
 export type CalculateRouteInput = z.infer<typeof calculateRouteSchema>;
 
+/** Maximum number of weekly instances a recurring ride series can have. */
+export const MAX_RECURRENCE_WEEKS = 12;
+
+/** 1 = single ride; 2–12 = weekly recurring series. */
+export const repeatWeeklySchema = z
+  .number()
+  .int()
+  .min(1)
+  .max(MAX_RECURRENCE_WEEKS)
+  .default(1);
+
 export const createRideSchema = z.object({
   title: z
     .string()
@@ -70,6 +81,8 @@ export const createRideSchema = z.object({
   maxParticipants: maxParticipantsSchema,
   /** Optional group this ride belongs to. Membership is verified on the server. */
   groupId: z.string().nullish(),
+  /** Number of weekly instances to create (1 = single ride). */
+  repeatWeekly: repeatWeeklySchema,
 });
 
 export type CreateRideInput = z.infer<typeof createRideSchema>;
@@ -105,6 +118,8 @@ export const rideFormSchema = z.object({
   difficulty: rideDifficultySchema.optional(),
   maxParticipants: maxParticipantsFormField,
   groupId: z.string().nullish(),
+  /** Weekly repeat count as a select value ("1" = single ride). */
+  repeatWeekly: z.enum(["1", "2", "4", "8", "12"]),
 });
 
 export type RideFormValues = z.infer<typeof rideFormSchema>;

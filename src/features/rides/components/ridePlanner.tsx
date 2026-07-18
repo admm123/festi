@@ -129,6 +129,7 @@ export function RidePlanner() {
       description: "",
       startTime: "",
       maxParticipants: "",
+      repeatWeekly: "1",
     },
   });
 
@@ -167,6 +168,7 @@ export function RidePlanner() {
         difficulty: values.difficulty ?? null,
         maxParticipants:
           values.maxParticipants === "" ? null : Number(values.maxParticipants),
+        repeatWeekly: Number(values.repeatWeekly),
       });
       if (!result.success) {
         throw new Error(result.error);
@@ -603,6 +605,34 @@ export function RidePlanner() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="repeatWeekly">Repeat weekly</Label>
+                    <Select
+                      value={watch("repeatWeekly")}
+                      onValueChange={(value) =>
+                        setValue(
+                          "repeatWeekly",
+                          value as "1" | "2" | "4" | "8" | "12",
+                        )
+                      }
+                    >
+                      <SelectTrigger id="repeatWeekly" className="w-full">
+                        <SelectValue placeholder="Does not repeat" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="start">
+                        <SelectItem value="1">Does not repeat</SelectItem>
+                        <SelectItem value="2">2 weeks</SelectItem>
+                        <SelectItem value="4">4 weeks</SelectItem>
+                        <SelectItem value="8">8 weeks</SelectItem>
+                        <SelectItem value="12">12 weeks</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Creates one ride per week at the same time. Each ride can
+                      be edited or cancelled on its own.
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-1.5">

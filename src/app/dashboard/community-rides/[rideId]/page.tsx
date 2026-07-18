@@ -85,7 +85,10 @@ export default async function RideDetailPage({
           {ride.isCreator && !isCancelled && (
             <>
               <EditRideDialog ride={ride} />
-              <CancelRideButton rideId={ride.id} />
+              <CancelRideButton
+                rideId={ride.id}
+                hasSeries={ride.recurrenceId !== null}
+              />
             </>
           )}
           {ride.isCreator && <DeleteRideButton rideId={ride.id} />}

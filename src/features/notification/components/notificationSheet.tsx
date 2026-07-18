@@ -75,6 +75,10 @@ function notificationText(notification: NotificationItem) {
       return notification.message
         ? `The ride "${notification.message}" was cancelled.`
         : `A ride you joined was cancelled.`;
+    case NotificationType.RIDE_WAITLIST_PROMOTED:
+      return notification.message
+        ? `A spot freed up — you're now pending approval for "${notification.message}".`
+        : `A spot freed up on a ride you waitlisted for.`;
     case NotificationType.GROUP_RIDE_CREATED:
       return notification.message
         ? `${name} posted the ride "${notification.message}" to your group.`
@@ -127,6 +131,7 @@ function NotificationIcon({ type }: { type: NotificationItem["type"] }) {
   if (
     type === NotificationType.RIDE_JOIN_REQUEST ||
     type === NotificationType.RIDE_UPDATED ||
+    type === NotificationType.RIDE_WAITLIST_PROMOTED ||
     type === NotificationType.GROUP_RIDE_CREATED
   ) {
     return <Bike className="size-4 text-red-500" />;

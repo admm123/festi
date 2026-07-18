@@ -221,6 +221,7 @@ enum NotificationType {
   RIDE_JOIN_REJECTED
   RIDE_UPDATED
   RIDE_CANCELLED
+  RIDE_WAITLIST_PROMOTED
   POST_LIKED
   POST_COMMENTED
 }
@@ -271,6 +272,8 @@ enum ActivityAction {
   RIDE_JOIN_REJECTED
   RIDE_JOIN_WITHDRAWN
   RIDE_LEFT
+  RIDE_WAITLISTED
+  RIDE_WAITLIST_PROMOTED
   GROUP_JOIN_REQUESTED
   GROUP_MEMBER_REJECTED
   POST_CREATED
@@ -320,6 +323,7 @@ enum RideParticipantStatus {
   PENDING
   APPROVED
   REJECTED
+  WAITLISTED
 }
 
 enum RideStatus {
@@ -346,6 +350,7 @@ model Ride {
   pace          String?
   difficulty    String?
   groupId       String?
+  recurrenceId  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -358,6 +363,7 @@ model Ride {
   @@index([startTime])
   @@index([status, startTime])
   @@index([groupId])
+  @@index([recurrenceId])
   @@map("ride")
 }
 

@@ -14,9 +14,16 @@ type CancelRideResult =
 
 /**
  * Cancels a ride without deleting it. Only the creator may cancel; everyone
- * with a pending or approved spot is notified.
+ * with a pending, approved, or waitlisted spot is notified.
+ *
+ * When `cancelFutureSeries` is true and the ride belongs to a weekly series,
+ * all future scheduled instances of the series are cancelled as well (past
+ * instances are left untouched).
  */
-export async function cancelRide(rideId: string): Promise<CancelRideResult> {
+export async function cancelRide(
+  rideId: string,
+  cancelFutureSeries = false,
+): Promise<CancelRideResult> {
   const session = await getCurrentUser();
   if (!session) {
     return { success: false, error: "You must be signed in." };
@@ -29,7 +36,13 @@ export async function cancelRide(rideId: string): Promise<CancelRideResult> {
 
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
-    select: { id: true, title: true, creatorId: true, status: true },
+    select: {
+      id: true,
+      title: true,
+      creatorId: true,
+      status: true,
+      recurrenceId: true,
+    },
   });
 
   if (!ride) {
@@ -47,45 +60,73 @@ export async function cancelRide(rideId: string): Promise<CancelRideResult> {
     return { success: false, error: "This ride is already cancelled." };
   }
 
-  await prisma.ride.update({
-    where: { id: rideId },
+  // Resolve which rides to cancel: just this one, or also all future
+  // scheduled instances of its weekly series.
+  let rideIds = [ride.id];
+  if (cancelFutureSeries && ride.recurrenceId) {
+    const futureInstances = await prisma.ride.findMany({
+      where: {
+        recurrenceId: ride.recurrenceId,
+        status: "SCHEDULED",
+        startTime: { gte: new Date() },
+      },
+      select: { id: true },
+    });
+    rideIds = [...new Set([ride.id, ...futureInstances.map((r) => r.id)])];
+  }
+
+  await prisma.ride.updateMany({
+    where: { id: { in: rideIds } },
     data: { status: "CANCELLED" },
   });
 
   revalidatePath("/dashboard/community-rides");
-  revalidatePath(`/dashboard/community-rides/${rideId}`);
 
-  await Logger.log(
-    ActivityAction.RIDE_CANCELLED,
-    `${session.user.email} cancelled the ride "${ride.title}".`,
-    {
-      actorId: session.user.id,
-      targetType: "Ride",
-      targetId: rideId,
-      metadata: { title: ride.title },
-    },
-  );
+  for (const id of rideIds) {
+    revalidatePath(`/dashboard/community-rides/${id}`);
 
-  const participants = await prisma.rideParticipant.findMany({
-    where: { rideId, status: { in: ["PENDING", "APPROVED"] } },
-    select: { userId: true },
-  });
-
-  await Promise.all(
-    participants.map((participant) =>
-      Notifier.push({
-        type: NotificationType.RIDE_CANCELLED,
-        userId: participant.userId,
+    await Logger.log(
+      ActivityAction.RIDE_CANCELLED,
+      `${session.user.email} cancelled the ride "${ride.title}".`,
+      {
         actorId: session.user.id,
         targetType: "Ride",
-        targetId: rideId,
-        message: ride.title,
-      }),
-    ),
-  );
+        targetId: id,
+        metadata: {
+          title: ride.title,
+          recurrenceId: ride.recurrenceId,
+          seriesCancel: rideIds.length > 1,
+        },
+      },
+    );
+
+    const participants = await prisma.rideParticipant.findMany({
+      where: {
+        rideId: id,
+        status: { in: ["PENDING", "APPROVED", "WAITLISTED"] },
+      },
+      select: { userId: true },
+    });
+
+    await Promise.all(
+      participants.map((participant) =>
+        Notifier.push({
+          type: NotificationType.RIDE_CANCELLED,
+          userId: participant.userId,
+          actorId: session.user.id,
+          targetType: "Ride",
+          targetId: id,
+          message: ride.title,
+        }),
+      ),
+    );
+  }
 
   return {
     success: true,
-    message: `${ride.title} has been cancelled.`,
+    message:
+      rideIds.length > 1
+        ? `${ride.title} and ${rideIds.length - 1} future rides in the series have been cancelled.`
+        : `${ride.title} has been cancelled.`,
   };
 }

@@ -43,7 +43,10 @@ export async function withdrawJoinRequest(
     select: { status: true },
   });
 
-  if (participation?.status !== "PENDING") {
+  if (
+    participation?.status !== "PENDING" &&
+    participation?.status !== "WAITLISTED"
+  ) {
     return {
       success: false,
       error: "You have no pending request for this ride.",

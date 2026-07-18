@@ -2,7 +2,11 @@ export type Waypoint = { lat: number; lng: number };
 
 export type RouteProfile = "trekking" | "fastbike" | "gravel";
 
-export type RideParticipantStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type RideParticipantStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "WAITLISTED";
 
 export type RideStatus = "SCHEDULED" | "CANCELLED";
 
@@ -69,6 +73,8 @@ export type RideSummary = {
   difficulty: RideDifficulty | null;
   /** Null means unlimited spots. */
   maxParticipants: number | null;
+  /** Shared id across all instances of a weekly recurring series, if any. */
+  recurrenceId: string | null;
   createdAt: string;
   creator: RideCreator;
   /** Number of approved participants (the creator is not counted). */

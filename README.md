@@ -30,6 +30,8 @@ The project is a modern [Next.js](https://nextjs.org) application that ships to 
   - Export routes as GPX; upload ride photos.
   - Request to join rides; creators approve or reject participants.
   - Optional pace and difficulty labels, rider caps, and full lifecycle management: creators can edit details (approved riders are notified when the start time moves) or cancel a ride (all participants are notified); riders can leave rides, withdraw pending requests, and re-request after a rejection.
+  - Weekly recurring rides: create up to 12 weekly instances in one go, cancel single instances or the whole remaining series.
+  - Waitlists on full rides: joiners queue automatically and are promoted to a pending request when a spot frees.
   - Post rides to a group; members are notified and see upcoming group rides on the group page.
   - Discover upcoming rides with text search and pace/difficulty filters.
 - **Notifications**

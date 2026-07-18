@@ -44,6 +44,7 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     difficulty,
     maxParticipants,
     groupId,
+    repeatWeekly,
   } = parsed.data;
 
   // Group rides require the creator to be an approved member of the group.
@@ -60,25 +61,42 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     }
   }
 
-  // Only one ride per creator per calendar day.
-  const dayStart = new Date(startTime);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(startTime);
-  dayEnd.setHours(23, 59, 59, 999);
+  // Only one ride per creator per calendar day — checked for every weekly
+  // instance up front so a series never half-creates.
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const instanceDates = Array.from(
+    { length: repeatWeekly },
+    (_, i) => new Date(startTime.getTime() + i * WEEK_MS),
+  );
+  const firstDay = new Date(instanceDates[0]);
+  firstDay.setHours(0, 0, 0, 0);
+  const lastDay = new Date(instanceDates[instanceDates.length - 1]);
+  lastDay.setHours(23, 59, 59, 999);
 
-  const existing = await prisma.ride.findFirst({
+  const conflicting = await prisma.ride.findMany({
     where: {
       creatorId: session.user.id,
-      startTime: { gte: dayStart, lte: dayEnd },
+      startTime: { gte: firstDay, lte: lastDay },
     },
-    select: { id: true },
+    select: { startTime: true },
   });
 
-  if (existing) {
-    return {
-      success: false,
-      error: "You already have a ride planned for that day.",
-    };
+  if (conflicting.length > 0) {
+    const takenDays = new Set(
+      conflicting.map((ride) => ride.startTime.toDateString()),
+    );
+    const clash = instanceDates.find((date) =>
+      takenDays.has(date.toDateString()),
+    );
+    if (clash) {
+      return {
+        success: false,
+        error: `You already have a ride planned for ${clash.toLocaleDateString(
+          "en",
+          { dateStyle: "medium" },
+        )}.`,
+      };
+    }
   }
 
   let route: Awaited<ReturnType<typeof fetchRoute>>;
@@ -102,46 +120,60 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
     (await reverseGeocode(start.lat, start.lng)) ??
     (startLocation ? startLocation : null);
 
-  const ride = await prisma.ride.create({
-    data: {
-      creatorId: session.user.id,
-      title,
-      description: description ? description : null,
-      startLocation: resolvedStartLocation,
-      startTime,
-      distance: route.distance,
-      duration: route.duration,
-      elevationGain: route.elevationGain,
-      elevationLoss: route.elevationLoss,
-      routeGeometry: route.routeGeometry,
-      waypoints,
-      elevationProfile: route.elevationProfile as unknown as object,
-      pace: pace ?? null,
-      difficulty: difficulty ?? null,
-      maxParticipants: maxParticipants ?? null,
-      groupId: groupId ?? null,
-    },
-  });
+  const recurrenceId = repeatWeekly > 1 ? crypto.randomUUID() : null;
+
+  const rides = await prisma.$transaction(
+    instanceDates.map((date) =>
+      prisma.ride.create({
+        data: {
+          creatorId: session.user.id,
+          title,
+          description: description ? description : null,
+          startLocation: resolvedStartLocation,
+          startTime: date,
+          distance: route.distance,
+          duration: route.duration,
+          elevationGain: route.elevationGain,
+          elevationLoss: route.elevationLoss,
+          routeGeometry: route.routeGeometry,
+          waypoints,
+          elevationProfile: route.elevationProfile as unknown as object,
+          pace: pace ?? null,
+          difficulty: difficulty ?? null,
+          maxParticipants: maxParticipants ?? null,
+          groupId: groupId ?? null,
+          recurrenceId,
+        },
+      }),
+    ),
+  );
+  const ride = rides[0];
 
   revalidatePath("/dashboard/community-rides");
 
-  await Logger.log(
-    ActivityAction.RIDE_CREATED,
-    `${session.user.email} created the ride "${ride.title}".`,
-    {
-      actorId: session.user.id,
-      targetType: "Ride",
-      targetId: ride.id,
-      metadata: {
-        title: ride.title,
-        distance: ride.distance,
-        elevationGain: ride.elevationGain,
-        groupId: ride.groupId,
+  for (const [index, instance] of rides.entries()) {
+    await Logger.log(
+      ActivityAction.RIDE_CREATED,
+      `${session.user.email} created the ride "${instance.title}".`,
+      {
+        actorId: session.user.id,
+        targetType: "Ride",
+        targetId: instance.id,
+        metadata: {
+          title: instance.title,
+          distance: instance.distance,
+          elevationGain: instance.elevationGain,
+          groupId: instance.groupId,
+          recurrenceId,
+          seriesIndex: index + 1,
+          seriesLength: rides.length,
+        },
       },
-    },
-  );
+    );
+  }
 
-  // Let the other approved group members know a ride was posted to their group.
+  // Let the other approved group members know a ride was posted to their
+  // group — once per series, pointing at the first instance.
   if (ride.groupId) {
     const members = await prisma.groupMember.findMany({
       where: {
@@ -160,7 +192,8 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
           actorId: session.user.id,
           targetType: "Ride",
           targetId: ride.id,
-          message: ride.title,
+          message:
+            rides.length > 1 ? `${ride.title} (weekly series)` : ride.title,
         }),
       ),
     );
@@ -168,7 +201,10 @@ export async function createRide(input: unknown): Promise<CreateRideResult> {
 
   return {
     success: true,
-    message: `${ride.title} has been created.`,
+    message:
+      rides.length > 1
+        ? `${ride.title} has been created as a weekly series (${rides.length} rides).`
+        : `${ride.title} has been created.`,
     rideId: ride.id,
   };
 }

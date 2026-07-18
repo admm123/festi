@@ -30,6 +30,7 @@ export async function requestJoinRide(
       creatorId: true,
       startTime: true,
       status: true,
+      maxParticipants: true,
     },
   });
 
@@ -54,6 +55,13 @@ export async function requestJoinRide(
     select: { status: true },
   });
 
+  if (existing && existing.status === "WAITLISTED") {
+    return {
+      success: false,
+      error: "You are already on the waitlist for this ride.",
+    };
+  }
+
   if (existing && existing.status !== "REJECTED") {
     return {
       success: false,
@@ -61,18 +69,28 @@ export async function requestJoinRide(
     };
   }
 
+  // A full ride queues new requests on the waitlist instead of rejecting them.
+  let isFull = false;
+  if (ride.maxParticipants !== null) {
+    const approvedCount = await prisma.rideParticipant.count({
+      where: { rideId, status: "APPROVED" },
+    });
+    isFull = approvedCount >= ride.maxParticipants;
+  }
+  const status = isFull ? "WAITLISTED" : "PENDING";
+
   if (existing) {
     // A previously declined request can be asked again.
     await prisma.rideParticipant.update({
       where: { rideId_userId: { rideId, userId: session.user.id } },
-      data: { status: "PENDING" },
+      data: { status },
     });
   } else {
     await prisma.rideParticipant.create({
       data: {
         rideId,
         userId: session.user.id,
-        status: "PENDING",
+        status,
       },
     });
   }
@@ -80,8 +98,12 @@ export async function requestJoinRide(
   revalidatePath(`/dashboard/community-rides/${rideId}`);
 
   await Logger.log(
-    ActivityAction.RIDE_JOIN_REQUESTED,
-    `${session.user.email} requested to join a ride.`,
+    isFull
+      ? ActivityAction.RIDE_WAITLISTED
+      : ActivityAction.RIDE_JOIN_REQUESTED,
+    isFull
+      ? `${session.user.email} joined the waitlist for a ride.`
+      : `${session.user.email} requested to join a ride.`,
     {
       actorId: session.user.id,
       targetType: "Ride",
@@ -100,6 +122,8 @@ export async function requestJoinRide(
 
   return {
     success: true,
-    message: "Your request to join has been sent.",
+    message: isFull
+      ? "This ride is full — you are on the waitlist and will be moved up when a spot frees."
+      : "Your request to join has been sent.",
   };
 }

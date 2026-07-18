@@ -137,6 +137,23 @@ export function RideJoinButton({
     );
   }
 
+  if (participantStatus === "WAITLISTED") {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className={className}
+        disabled={withdrawMutation.isPending}
+        onClick={() => withdrawMutation.mutate()}
+      >
+        {withdrawMutation.isPending && (
+          <Loader2Icon className="size-4 animate-spin" />
+        )}
+        On waitlist — leave
+      </Button>
+    );
+  }
+
   if (participantStatus === "REJECTED") {
     return (
       <Button
@@ -164,8 +181,17 @@ export function RideJoinButton({
 
   if (isFull) {
     return (
-      <Button size="sm" className={className} disabled>
-        Full
+      <Button
+        size="sm"
+        variant="outline"
+        className={className}
+        disabled={joinMutation.isPending}
+        onClick={() => joinMutation.mutate()}
+      >
+        {joinMutation.isPending && (
+          <Loader2Icon className="size-4 animate-spin" />
+        )}
+        Join waitlist
       </Button>
     );
   }

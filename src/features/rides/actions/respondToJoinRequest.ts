@@ -54,7 +54,21 @@ export async function respondToJoinRequest(
     return { success: false, error: "This ride has been cancelled." };
   }
 
-  if (participant.status !== "PENDING") {
+  if (approve && participant.status !== "PENDING") {
+    return {
+      success: false,
+      error: "This request has already been handled.",
+    };
+  }
+
+  // Creators can also decline riders who are still on the waitlist.
+  if (!approve && participant.status === "APPROVED") {
+    return {
+      success: false,
+      error: "This request has already been handled.",
+    };
+  }
+  if (!approve && participant.status === "REJECTED") {
     return {
       success: false,
       error: "This request has already been handled.",
