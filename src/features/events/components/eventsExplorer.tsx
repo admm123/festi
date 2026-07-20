@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,7 +41,14 @@ export function EventsExplorer() {
   const [region, setRegion] = useState<string>(ALL);
   const [fromDate, setFromDate] = useState(todayIso());
   const [toDate, setToDate] = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["radnet-events"],
@@ -99,9 +106,16 @@ export function EventsExplorer() {
         if (toDate && event.date > toDate) {
           return false;
         }
+        if (debouncedSearch) {
+          const query = debouncedSearch.toLowerCase();
+          const haystack = `${event.title} ${event.club ?? ""}`.toLowerCase();
+          if (!haystack.includes(query)) {
+            return false;
+          }
+        }
         return true;
       }),
-    [events, group, region, fromDate, toDate],
+    [events, group, region, fromDate, toDate, debouncedSearch],
   );
 
   const syncing = Boolean(sync && (sync.locked || sync.pendingDetails > 0));
@@ -158,7 +172,19 @@ export function EventsExplorer() {
           className="sm:w-40"
         />
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground sm:ml-auto">
+        <div className="relative sm:ml-auto sm:w-64">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search title or club"
+            aria-label="Search events"
+            className="pl-8"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {syncing && (
             <span className="flex items-center gap-1.5">
               <Loader2Icon className="size-3.5 animate-spin" />
