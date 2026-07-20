@@ -157,3 +157,35 @@
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground)) transparent;
 }
+
+/* Dark popup for the events map (matches the app-themed MapLibre basemap). */
+.radnet-popup .maplibregl-popup-content {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+.radnet-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--popover);
+}
+
+.radnet-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: var(--popover);
+}
+
+.radnet-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--popover);
+}
+
+.radnet-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--popover);
+}
+
+.radnet-popup .maplibregl-popup-close-button {
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  padding: 0 0.375rem;
+}
