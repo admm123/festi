@@ -4,6 +4,7 @@ import {
   BarChart3Icon,
   BellIcon,
   BikeIcon,
+  CalendarDaysIcon,
   HomeIcon,
   SettingsIcon,
   UserCogIcon,
@@ -40,6 +41,7 @@ const contentItems: NavItem[] = [
     href: "/dashboard/community-rides",
     icon: BikeIcon,
   },
+  { label: "Events", href: "/dashboard/events", icon: CalendarDaysIcon },
 ];
 
 const settingsItems: NavItem[] = [

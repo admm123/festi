@@ -509,3 +509,48 @@ model PostImage {
   @@index([postId])
   @@map("post_image")
 }
+
+// Cached copy of the rad-net.de (BDR) Breitensportkalender, scraped via the
+// radnet-breitensport package. List rows are upserted by the calendar sync;
+// detail fields (coordinates, start location, …) are filled in lazily in
+// small polite batches, so `lat`/`lng` stay null until the detail pass ran.
+model RadnetEvent {
+  id            String  @id
+  type          String
+  date          DateTime
+  title         String
+  distances     Int[]
+  club          String?
+  lvAbbr        String?
+  detailUrl     String
+  struckThrough Boolean @default(false)
+
+  // Detail-page fields (null until detailSyncedAt is set).
+  landesverband String?
+  startZip      String?
+  startCity     String?
+  startVenue    String?
+  startTime     String?
+  website       String?
+  lat           Float?
+  lng           Float?
+  cancelled     Boolean @default(false)
+  cancelReason  String?
+
+  detailSyncedAt DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@index([date])
+  @@index([detailSyncedAt])
+  @@map("radnet_event")
+}
+
+// Singleton row (id = 1) tracking calendar sync freshness and acting as a
+// lock so concurrent visitors don't scrape rad-net in parallel.
+model RadnetSyncState {
+  id           Int       @id @default(1)
+  listSyncedAt DateTime?
+  lockedUntil  DateTime?
+
+  @@map("radnet_sync_state")
+}
