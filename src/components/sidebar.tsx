@@ -8,6 +8,7 @@ import {
   HomeIcon,
   NewspaperIcon,
   SettingsIcon,
+  TrophyIcon,
   UserCogIcon,
   UserIcon,
   UsersIcon,
@@ -42,6 +43,7 @@ const contentItems: NavItem[] = [
     href: "/dashboard/community-rides",
     icon: BikeIcon,
   },
+  { label: "Pro Racing", href: "/dashboard/pro", icon: TrophyIcon },
   { label: "Events", href: "/dashboard/events", icon: CalendarDaysIcon },
   { label: "News", href: "/dashboard/news", icon: NewspaperIcon },
 ];
