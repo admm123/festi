@@ -1,11 +1,22 @@
 "use server";
 
+import { TissotClient } from "procycling-live/tissot";
 import { getCurrentUser } from "@/features/auth/guards";
-import { createAsoClient, createCyclingStageClient } from "../lib/clients";
-import { toIsoDate } from "../lib/format";
+import { checkpointsToPois } from "../lib/checkpoints";
+import {
+  createAsoClient,
+  createCyclingStageClient,
+  createTissotClient,
+} from "../lib/clients";
 import { getProRace, type ProRaceConfig } from "../lib/races";
 import { buildStageRoute } from "../lib/route";
-import type { ProStage, ProStageDetail, ProStageRoute } from "../types";
+import { buildTissotRoute } from "../lib/tissotRoute";
+import type {
+  ProStage,
+  ProStageDetail,
+  ProStagePoi,
+  ProStageRoute,
+} from "../types";
 
 async function fetchStageInfo(
   race: ProRaceConfig,
@@ -22,10 +33,10 @@ async function fetchStageInfo(
       if (match) {
         return {
           number: stageNumber,
-          date: toIsoDate(match.date),
+          date: match.dateLocal ?? null,
           type: match.type ?? null,
-          departure: match.departure?.name ?? null,
-          arrival: match.arrival?.name ?? null,
+          departure: match.departureCity?.label ?? null,
+          arrival: match.arrivalCity?.label ?? null,
           distanceKm: typeof match.length === "number" ? match.length : null,
         };
       }
@@ -43,11 +54,50 @@ async function fetchStageInfo(
   };
 }
 
+/**
+ * Official route from Tissot: the per-stage KMZ supplies the map geometry and
+ * the profile JSON the elevation. Returns null when the race has no timing
+ * partner or the stage publishes no KMZ — the caller falls back to the
+ * cyclingstage GPX.
+ */
+async function fetchTissotStageRoute(
+  race: ProRaceConfig,
+  year: number,
+  stageNumber: number,
+): Promise<ProStageRoute | null> {
+  if (!race.tissotCode) return null;
+  try {
+    const tissot = createTissotClient();
+    const competitionId = TissotClient.competitionId(race.tissotCode, year);
+    const detail = await tissot.getStageDetail(competitionId, stageNumber);
+    if (!detail?.mapUrl) return null;
+
+    // The KMZ sits on a plain CDN; the 1h fetch cache matches the other
+    // slow-changing race data.
+    const [kmzResponse, profile] = await Promise.all([
+      fetch(detail.mapUrl, { next: { revalidate: 3600 } }),
+      tissot.getStageProfile(competitionId, stageNumber).catch(() => null),
+    ]);
+    if (!kmzResponse.ok) return null;
+    return buildTissotRoute(
+      await kmzResponse.arrayBuffer(),
+      profile,
+      detail.mapUrl,
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function fetchStageRoute(
   race: ProRaceConfig,
   year: number,
   stageNumber: number,
 ): Promise<ProStageRoute | null> {
+  // Prefer the official Tissot route; fall back to the cyclingstage GPX.
+  const tissotRoute = await fetchTissotStageRoute(race, year, stageNumber);
+  if (tissotRoute) return tissotRoute;
+
   if (!race.cyclingstageSlug) return null;
   try {
     const cyclingstage = createCyclingStageClient();
@@ -67,9 +117,32 @@ async function fetchStageRoute(
 }
 
 /**
- * Stage detail: basic stage info from ASO plus the GPX route (map geometry +
- * elevation profile) from cyclingstage.com. The route is null when no GPX is
- * published for the stage. Returns null for unknown race keys.
+ * KOM climbs and sprints along the stage, from the ASO checkpoint list
+ * (slow-changing course data, so the cached client is fine).
+ */
+async function fetchStagePois(
+  race: ProRaceConfig,
+  year: number,
+  stageNumber: number,
+): Promise<ProStagePoi[]> {
+  if (!race.asoRace) return [];
+  try {
+    const checkpoints = await createAsoClient(
+      race.asoRace,
+      year,
+    ).getCheckpoints(stageNumber);
+    return checkpointsToPois(checkpoints);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Stage detail: basic stage info from ASO, the route (map geometry + elevation
+ * profile) — official Tissot KMZ/profile when available, cyclingstage GPX as
+ * fallback — and the course POIs (KOM/sprint) from the ASO checkpoints. The
+ * route is null when no geometry is published for the stage. Returns null for
+ * unknown race keys.
  */
 export async function getStageDetail(
   raceKey: string,
@@ -84,9 +157,10 @@ export async function getStageDetail(
   const race = getProRace(raceKey);
   if (!race) return null;
 
-  const [stage, route] = await Promise.all([
+  const [stage, route, pois] = await Promise.all([
     fetchStageInfo(race, year, stageNumber),
     fetchStageRoute(race, year, stageNumber),
+    fetchStagePois(race, year, stageNumber),
   ]);
 
   return {
@@ -95,5 +169,6 @@ export async function getStageDetail(
     year,
     stage,
     route,
+    pois,
   };
 }

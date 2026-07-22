@@ -4,6 +4,8 @@ import {
   ArrowRightIcon,
   FileTextIcon,
   ListOrderedIcon,
+  NewspaperIcon,
+  PinIcon,
   TrophyIcon,
   UsersIcon,
 } from "lucide-react";
@@ -30,10 +32,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRaceDetail } from "@/features/pro/actions/getRaceDetail";
 import { getRaceMap } from "@/features/pro/actions/getRaceMap";
+import { getRaceNews } from "@/features/pro/actions/getRaceNews";
 import { getRaceReports } from "@/features/pro/actions/getRaceReports";
 import { RaceMap } from "@/features/pro/components/raceMap";
 import { formatStageType } from "@/features/pro/lib/format";
-import type { ProRaceDetail, ProStageReport } from "@/features/pro/types";
+import type {
+  ProNewsArticle,
+  ProRaceDetail,
+  ProStageReport,
+} from "@/features/pro/types";
 
 function stageLabel(stageNumber: number): string {
   return stageNumber === 0 ? "Prologue" : `Stage ${stageNumber}`;
@@ -155,7 +162,12 @@ function StartlistTab({ detail }: { detail: ProRaceDetail }) {
             <Table>
               <TableBody>
                 {team.riders.map((rider) => (
-                  <TableRow key={`${team.name}-${rider.bib ?? rider.lastName}`}>
+                  <TableRow
+                    key={`${team.name}-${rider.bib ?? rider.lastName}`}
+                    className={
+                      rider.withdrawnStage !== null ? "opacity-50" : undefined
+                    }
+                  >
                     <TableCell className="w-10 font-mono text-xs text-muted-foreground">
                       {rider.bib ?? "–"}
                     </TableCell>
@@ -176,7 +188,16 @@ function StartlistTab({ detail }: { detail: ProRaceDetail }) {
                       )}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {rider.firstName} {rider.lastName}
+                      <span className="flex items-center gap-2">
+                        {rider.firstName} {rider.lastName}
+                        {rider.withdrawnStage !== null && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {rider.withdrawnStage === 0
+                              ? "DNF prologue"
+                              : `DNF st. ${rider.withdrawnStage}`}
+                          </Badge>
+                        )}
+                      </span>
                     </TableCell>
                     <TableCell className="w-16 text-right text-xs text-muted-foreground">
                       {rider.nationality ?? ""}
@@ -356,6 +377,72 @@ function ReportsTab({
   );
 }
 
+function NewsTab({
+  detail,
+  articles,
+}: {
+  detail: ProRaceDetail;
+  articles: ProNewsArticle[];
+}) {
+  if (articles.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <NewspaperIcon />
+          </EmptyMedia>
+          <EmptyTitle>No news yet</EmptyTitle>
+          <EmptyDescription>
+            The official race-center commentary appears here once the race is
+            underway.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {articles.map((article) => (
+        <Card key={article.id}>
+          <CardHeader className="gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <Badge asChild variant="secondary">
+                <Link
+                  href={`/dashboard/pro/${detail.key}/${detail.year}/stage/${article.stage}`}
+                >
+                  {stageLabel(article.stage)}
+                </Link>
+              </Badge>
+              {article.publishedAt && (
+                <span>
+                  {format(new Date(article.publishedAt), "MMM d, HH:mm")}
+                </span>
+              )}
+              {article.pinned && (
+                <Badge variant="outline" className="gap-1">
+                  <PinIcon className="size-3" />
+                  Pinned
+                </Badge>
+              )}
+            </div>
+            <CardTitle className="text-base">{article.title}</CardTitle>
+          </CardHeader>
+          {article.paragraphs.length > 0 && (
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              {article.paragraphs.map((paragraph) => (
+                <p key={paragraph} className="whitespace-pre-line">
+                  {paragraph}
+                </p>
+              ))}
+            </CardContent>
+          )}
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default async function ProRacePage({
   params,
 }: {
@@ -367,10 +454,11 @@ export default async function ProRacePage({
     notFound();
   }
 
-  const [detail, reports, raceMap] = await Promise.all([
+  const [detail, reports, raceMap, news] = await Promise.all([
     getRaceDetail(raceKey, year),
     getRaceReports(raceKey, year),
     getRaceMap(raceKey, year),
+    getRaceNews(raceKey, year),
   ]);
   if (!detail) {
     notFound();
@@ -428,6 +516,7 @@ export default async function ProRacePage({
           <TabsTrigger value="startlist">Startlist</TabsTrigger>
           <TabsTrigger value="standings">Standings</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="news">News</TabsTrigger>
         </TabsList>
         <TabsContent value="stages" className="mt-4">
           <StagesTab detail={detail} />
@@ -440,6 +529,9 @@ export default async function ProRacePage({
         </TabsContent>
         <TabsContent value="reports" className="mt-4">
           <ReportsTab detail={detail} reports={reports} />
+        </TabsContent>
+        <TabsContent value="news" className="mt-4">
+          <NewsTab detail={detail} articles={news} />
         </TabsContent>
       </Tabs>
     </div>

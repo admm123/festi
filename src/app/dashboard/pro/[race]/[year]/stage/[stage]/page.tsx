@@ -16,6 +16,7 @@ import { LiveStagePanel } from "@/features/pro/components/liveStagePanel";
 import { ReplayPanel } from "@/features/pro/components/replayPanel";
 import { StageRoutePanel } from "@/features/pro/components/stageRoutePanel";
 import { formatStageType } from "@/features/pro/lib/format";
+import { poisToDots } from "@/features/pro/lib/riderDots";
 
 function formatMeters(meters: number): string {
   return `${Math.round(meters).toLocaleString("en-US")} m`;
@@ -131,9 +132,10 @@ export default async function ProStagePage({
           year={detail.year}
           stageNumber={stageNumber}
           route={route}
+          pois={detail.pois}
         />
       ) : replay !== null && replay.frames.length > 0 && route !== null ? (
-        <ReplayPanel route={route} frames={replay.frames} />
+        <ReplayPanel route={route} frames={replay.frames} pois={detail.pois} />
       ) : (
         route !== null && (
           <Card className="overflow-hidden">
@@ -142,6 +144,9 @@ export default async function ProStagePage({
                 routeGeometry={route.routeGeometry}
                 waypoints={route.waypoints}
                 elevationProfile={route.elevationProfile}
+                riderDots={
+                  detail.pois.length > 0 ? poisToDots(detail.pois) : undefined
+                }
               />
             </CardContent>
           </Card>
@@ -157,9 +162,13 @@ export default async function ProStagePage({
             rel="noreferrer"
             className="underline underline-offset-2"
           >
-            cyclingstage.com
+            {route.sourceUrl.includes("tissottiming")
+              ? "Tissot"
+              : "cyclingstage.com"}
           </a>
         ) : (
+          // One-day races come from cyclingstage without a source URL; the
+          // Tissot path always carries its KMZ URL.
           "cyclingstage.com"
         )}
         {" · "}Race data: ASO / Tissot

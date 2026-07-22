@@ -3,10 +3,11 @@ import "server-only";
 import {
   AsoClient,
   type AsoCompetitor,
-  type AsoRecordMeta,
+  type AsoRanking,
   type AsoTeam,
   type AsoTelemetry,
   type AsoTelemetryRider,
+  mapRankings,
 } from "procycling-live/aso";
 import type { TissotRanking } from "procycling-live/tissot";
 import type {
@@ -54,31 +55,6 @@ export function buildRiderIndex(
     });
   }
   return index;
-}
-
-/**
- * The `telemetryCompetitor` bind is an array of per-stage frames (each with its
- * own `Riders`, `YGPW` and `StageIndex`), not the single object the ASO type
- * suggests. Pick the frame for the requested stage so a live stage's telemetry
- * never leaks onto another stage's page; returns null when no frame matches.
- */
-export function pickTelemetryFrame(
-  raw: unknown,
-  stageNumber: number,
-): AsoTelemetry | null {
-  const frames = (
-    Array.isArray(raw) ? raw : raw ? [raw] : []
-  ) as AsoTelemetry[];
-  if (frames.length === 0) return null;
-  const match = frames.find(
-    (frame) => asNumber((frame as AsoRecordMeta).StageIndex) === stageNumber,
-  );
-  // A single frame without a StageIndex is still usable for the live stage.
-  if (!match && frames.length === 1) {
-    const only = frames[0] as AsoRecordMeta;
-    if (only.StageIndex === undefined) return frames[0];
-  }
-  return match ?? null;
 }
 
 /**
@@ -191,73 +167,36 @@ export function mapTissotRanking(ranking: TissotRanking): ProStandingRow[] {
   }));
 }
 
-/** True when the value looks like one classification row. */
-function isRowLike(value: unknown): value is AsoRecordMeta {
-  if (typeof value !== "object" || value === null) return false;
-  const row = value as AsoRecordMeta;
-  return (
-    typeof row.rank === "number" ||
-    typeof row.position === "number" ||
-    typeof row.bib === "number" ||
-    typeof row.Bib === "number"
-  );
-}
-
-function asString(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function asNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
 /**
- * Extracts standing rows from the loosely-typed ASO rankings bind. The payload
- * is an `AsoRecordMeta` (or an array of them) whose exact shape varies per
- * edition, so we only map fields we can verify: rows are recognised by a
- * numeric rank/bib, either directly in the payload or nested in the first
- * array-valued property that contains row-like entries.
+ * Maps the heterogeneous ASO rankings bind into GC standing rows, using the
+ * library's mapRankings() normalizer (it resolves $rider refs against the
+ * startlist and formats time/gap). Picks the GC classification ("itg"),
+ * falling back to the first one; photos come from the bib index.
  */
-export function mapAsoRanking(
-  payload: AsoRecordMeta | AsoRecordMeta[] | null,
+export function mapAsoGcRows(
+  payload: AsoRanking | AsoRanking[] | null,
+  competitors: AsoCompetitor[],
+  teams: AsoTeam[],
   index: Map<number, RiderIdentity>,
 ): ProStandingRow[] {
-  if (!payload) return [];
-  const records = Array.isArray(payload) ? payload : [payload];
-
-  let rows: AsoRecordMeta[] = records.filter(isRowLike);
-  if (rows.length === 0) {
-    // Look one level deep for a nested classification (e.g. { rankings: [...] }).
-    for (const record of records) {
-      for (const value of Object.values(record)) {
-        if (
-          Array.isArray(value) &&
-          value.length > 0 &&
-          value.every(isRowLike)
-        ) {
-          rows = value;
-          break;
-        }
-      }
-      if (rows.length > 0) break;
-    }
-  }
-
-  return rows.slice(0, 30).map((row) => {
-    const bib = asNumber(row.bib) ?? asNumber(row.Bib);
-    const identity = bib !== null ? (index.get(bib) ?? null) : null;
-    return {
-      rank: asNumber(row.rank) ?? asNumber(row.position),
-      rider:
-        identity?.name ??
-        asString(row.name) ??
-        (bib !== null ? `Bib ${bib}` : "Unknown rider"),
-      team: identity?.team ?? asString(row.team),
-      nation: asString(row.nationality) ?? asString(row.nation),
-      time: asString(row.time) ?? asString(row.Time),
-      gap: asString(row.gap) ?? asString(row.Gap),
-      teamLogoUrl: null,
-      riderPhotoUrl: identity?.photoUrl ?? null,
-    };
+  const classifications = mapRankings(payload, {
+    riders: competitors,
+    teams,
   });
+  const gc =
+    classifications.find((classification) => classification.type === "itg") ??
+    classifications[0];
+  if (!gc) return [];
+  return gc.rows.slice(0, 30).map((row) => ({
+    rank: row.rank ?? null,
+    rider:
+      row.name ?? (row.bib !== undefined ? `Bib ${row.bib}` : "Unknown rider"),
+    team: row.team ?? null,
+    nation: row.nation ? row.nation.toUpperCase() : null,
+    time: row.time ?? null,
+    gap: row.gap ?? null,
+    teamLogoUrl: null,
+    riderPhotoUrl:
+      row.bib !== undefined ? (index.get(row.bib)?.photoUrl ?? null) : null,
+  }));
 }

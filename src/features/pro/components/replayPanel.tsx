@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { ridersToDots } from "../lib/riderDots";
-import type { ProReplayFrame, ProStageRoute } from "../types";
+import { poisToDots, ridersToDots } from "../lib/riderDots";
+import type { ProReplayFrame, ProStagePoi, ProStageRoute } from "../types";
 import { StageRoutePanel } from "./stageRoutePanel";
 
 /** Playback advances one captured frame per tick. */
@@ -18,13 +18,15 @@ type ReplayPanelProps = {
   route: ProStageRoute;
   /** Captured frames in chronological order; never empty. */
   frames: ProReplayFrame[];
+  /** KOM climbs and sprints drawn on the map under the rider dots. */
+  pois: ProStagePoi[];
 };
 
 /**
  * Scrubbable replay of a past stage from captured telemetry frames: a time
  * slider plus play/pause, animating the rider dots along the stage route.
  */
-export function ReplayPanel({ route, frames }: ReplayPanelProps) {
+export function ReplayPanel({ route, frames, pois }: ReplayPanelProps) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -46,8 +48,8 @@ export function ReplayPanel({ route, frames }: ReplayPanelProps) {
   }, [playing, frames.length]);
 
   const dots = useMemo(
-    () => (frame ? ridersToDots(frame.riders) : []),
-    [frame],
+    () => [...poisToDots(pois), ...(frame ? ridersToDots(frame.riders) : [])],
+    [frame, pois],
   );
 
   if (!frame) return null;

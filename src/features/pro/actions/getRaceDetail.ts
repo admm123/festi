@@ -4,9 +4,9 @@ import { AsoClient } from "procycling-live/aso";
 import { TissotClient } from "procycling-live/tissot";
 import { getCurrentUser } from "@/features/auth/guards";
 import { createAsoClient, createTissotClient } from "../lib/clients";
-import { toIsoDate } from "../lib/format";
 import {
   buildRiderPhotoIndex,
+  buildRiderUciIndex,
   buildTeamImageIndex,
   lookupRiderPhoto,
   lookupTeamImages,
@@ -33,10 +33,10 @@ async function fetchStages(
     return stages
       .map((stage, index) => ({
         number: stage.stage ?? stage.id ?? index + 1,
-        date: toIsoDate(stage.date),
+        date: stage.dateLocal ?? null,
         type: stage.type ?? null,
-        departure: stage.departure?.name ?? null,
-        arrival: stage.arrival?.name ?? null,
+        departure: stage.departureCity?.label ?? null,
+        arrival: stage.arrivalCity?.label ?? null,
         distanceKm: typeof stage.length === "number" ? stage.length : null,
       }))
       .sort((a, b) => a.number - b.number);
@@ -45,23 +45,78 @@ async function fetchStages(
   }
 }
 
+/**
+ * Withdrawn riders, keyed by bib -> the stage they abandoned during. The
+ * per-stage withdrawals binds embed classification records (their `rankings`
+ * rows carry the bibs) alongside checkpoint noise, which is skipped. All
+ * started stages are probed, today's included — mid-stage abandons count.
+ */
+async function fetchWithdrawnBibs(
+  race: ProRaceConfig,
+  year: number,
+): Promise<Map<number, number>> {
+  const withdrawn = new Map<number, number>();
+  if (!race.asoRace) return withdrawn;
+  try {
+    const aso = createAsoClient(race.asoRace, year);
+    const stages = await aso.getStages();
+    const today = new Date().toISOString().slice(0, 10);
+    const started = stages
+      .map((stage) => ({
+        number: stage.stage ?? stage.id,
+        date: stage.dateLocal ?? null,
+      }))
+      .filter(
+        (stage): stage is { number: number; date: string | null } =>
+          typeof stage.number === "number",
+      )
+      .filter((stage) => stage.date !== null && stage.date <= today);
+
+    const results = await Promise.allSettled(
+      started.map(async (stage) => ({
+        stage: stage.number,
+        records: await aso.getWithdrawals(stage.number),
+      })),
+    );
+    for (const result of results) {
+      if (result.status !== "fulfilled") continue;
+      for (const record of result.value.records) {
+        if (!Array.isArray(record.rankings)) continue;
+        for (const row of record.rankings) {
+          const bib =
+            typeof row === "object" &&
+            row !== null &&
+            "bib" in row &&
+            typeof row.bib === "number"
+              ? row.bib
+              : null;
+          if (bib !== null && !withdrawn.has(bib)) {
+            withdrawn.set(bib, result.value.stage);
+          }
+        }
+      }
+    }
+  } catch {
+    // A flaky upstream leaves everyone unmarked.
+  }
+  return withdrawn;
+}
+
 async function fetchStartlist(
   race: ProRaceConfig,
   year: number,
+  withdrawn: Map<number, number>,
 ): Promise<ProStartlistTeam[]> {
   if (!race.asoRace) return [];
   try {
     const aso = createAsoClient(race.asoRace, year);
     const [competitors, teams] = await Promise.all([
-      aso.getCompetitors(),
+      aso.getRiders(),
       aso.getTeams(),
     ]);
 
     const byTeam = new Map<string, ProStartlistTeam>();
     for (const competitor of competitors) {
-      // The allCompetitors bind also contains the team records themselves;
-      // actual riders are the ones referencing a team.
-      if (!competitor.$team) continue;
       const team = AsoClient.resolveRef(competitor.$team, teams);
       const teamName = team?.name ?? "Unknown team";
       let group = byTeam.get(teamName);
@@ -77,12 +132,14 @@ async function fetchStartlist(
         };
         byTeam.set(teamName, group);
       }
+      const bib = competitor.bib ?? null;
       group.riders.push({
-        bib: competitor.bib ?? null,
+        bib,
         firstName: competitor.firstname ?? "",
         lastName: competitor.lastname ?? "",
         nationality: competitor.nationality?.toUpperCase() ?? null,
         photoUrl: riderPhotoUrl(competitor),
+        withdrawnStage: bib !== null ? (withdrawn.get(bib) ?? null) : null,
       });
     }
 
@@ -102,19 +159,21 @@ async function fetchStandings(
   if (!race.tissotCode) return [];
   try {
     // Team logos and rider photos come from ASO; join them onto the Tissot
-    // standings by team code/name and rider name. A failed ASO fetch just
-    // leaves the imagery empty.
+    // standings by team code/name and UCI licence code (name fallback). A
+    // failed ASO fetch just leaves the imagery empty.
     let teamImageIndex: Map<string, ProTeamImages> = new Map();
     let riderPhotoIndex = new Map<string, string>();
+    let riderUciIndex = new Map<string, string>();
     if (race.asoRace) {
       try {
         const aso = createAsoClient(race.asoRace, year);
         const [teams, competitors] = await Promise.all([
           aso.getTeams(),
-          aso.getCompetitors(),
+          aso.getRiders(),
         ]);
         teamImageIndex = buildTeamImageIndex(teams);
         riderPhotoIndex = buildRiderPhotoIndex(competitors);
+        riderUciIndex = buildRiderUciIndex(competitors);
       } catch {
         // Standings still render without logos/photos.
       }
@@ -122,50 +181,31 @@ async function fetchStandings(
 
     const tissot = createTissotClient();
     const competitionId = TissotClient.competitionId(race.tissotCode, year);
-    const schedule = await tissot.getSchedule(competitionId);
-    if (schedule.length === 0) return [];
+    // The schedule's hasResult flags are unreliable, so the client picks the
+    // latest started stage (via the schedule's utcOffset) and probes backwards
+    // until a ranking is actually served.
+    const latest = await tissot.getLatestOverallRanking(competitionId);
+    const results = latest?.ranking.results ?? [];
 
-    // The schedule's hasResult flags are unreliable, so pick the latest stage
-    // whose start date has passed and probe backwards from there — during a
-    // stage in progress the GC update may not be published yet.
-    const now = Date.now();
-    let latestStarted = -1;
-    schedule.forEach((stage, index) => {
-      const start = stage.date ? Date.parse(stage.date) : Number.NaN;
-      if (!Number.isNaN(start) && start <= now) latestStarted = index;
-    });
-    if (latestStarted === -1) latestStarted = schedule.length - 1;
-
-    for (
-      let index = latestStarted;
-      index >= 0 && index > latestStarted - 3;
-      index--
-    ) {
-      // Rankings are addressed by the 1-based stage number.
-      const ranking = await tissot.getOverallRanking(competitionId, index + 1);
-      const results = ranking?.results;
-      if (results && results.length > 0) {
-        return results.map((row) => ({
-          rank: typeof row.rank === "number" ? row.rank : null,
-          rider: row.rider?.name ?? "Unknown rider",
-          team: row.rider?.teamName ?? row.rider?.teamCode ?? null,
-          nation: row.rider?.nation ?? null,
-          time: row.value ?? null,
-          gap: row.gap ?? null,
-          teamLogoUrl:
-            lookupTeamImages(
-              teamImageIndex,
-              row.rider?.teamCode ?? null,
-              row.rider?.teamName ?? null,
-            )?.logoUrl ?? null,
-          riderPhotoUrl: lookupRiderPhoto(
-            riderPhotoIndex,
-            row.rider?.name ?? null,
-          ),
-        }));
-      }
-    }
-    return [];
+    return results.map((row) => ({
+      rank: typeof row.rank === "number" ? row.rank : null,
+      rider: row.rider?.name ?? "Unknown rider",
+      team: row.rider?.teamName ?? row.rider?.teamCode ?? null,
+      nation: row.rider?.nation ?? null,
+      time: row.value ?? null,
+      gap: row.gap ?? null,
+      teamLogoUrl:
+        lookupTeamImages(
+          teamImageIndex,
+          row.rider?.teamCode ?? null,
+          row.rider?.teamName ?? null,
+        )?.logoUrl ?? null,
+      riderPhotoUrl:
+        (row.rider?.uciRiderId
+          ? riderUciIndex.get(row.rider.uciRiderId)
+          : undefined) ??
+        lookupRiderPhoto(riderPhotoIndex, row.rider?.name ?? null),
+    }));
   } catch {
     return [];
   }
@@ -189,9 +229,12 @@ export async function getRaceDetail(
   const race = getProRace(raceKey);
   if (!race) return null;
 
+  // The startlist chains on the withdrawals probe, which runs in parallel with
+  // the other sections.
+  const withdrawnPromise = fetchWithdrawnBibs(race, year);
   const [stages, startlist, standings] = await Promise.all([
     fetchStages(race, year),
-    fetchStartlist(race, year),
+    withdrawnPromise.then((withdrawn) => fetchStartlist(race, year, withdrawn)),
     fetchStandings(race, year),
   ]);
 

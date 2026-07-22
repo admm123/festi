@@ -6,6 +6,7 @@ import {
   MountainIcon,
   ThermometerIcon,
   TimerIcon,
+  WindIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +25,10 @@ import {
   DEFAULT_RIDER_COLOR,
   JERSEY_COLORS,
   JERSEY_LABELS,
+  poisToDots,
   ridersToDots,
 } from "../lib/riderDots";
-import type { ProLiveStageData, ProStageRoute } from "../types";
+import type { ProLiveStageData, ProStagePoi, ProStageRoute } from "../types";
 import { StageRoutePanel } from "./stageRoutePanel";
 
 /** Matches ASO's ~5s telemetry cadence without hammering the upstream. */
@@ -38,6 +40,8 @@ type LiveStagePanelProps = {
   stageNumber: number;
   /** Null when no GPX route is published for this stage. */
   route: ProStageRoute | null;
+  /** KOM climbs and sprints drawn on the map under the rider dots. */
+  pois: ProStagePoi[];
 };
 
 function LiveBadge() {
@@ -93,6 +97,19 @@ function LiveInfoStrip({ data }: { data: ProLiveStageData }) {
           {info.gradientPct}%
         </Badge>
       )}
+      {data.weather?.description && (
+        <Badge variant="outline" title={data.weather.place ?? undefined}>
+          {data.weather.description}
+        </Badge>
+      )}
+      {data.weather?.windKph !== null &&
+        data.weather?.windKph !== undefined && (
+          <Badge variant="outline" title={data.weather.place ?? undefined}>
+            <WindIcon className="size-3" />
+            {data.weather.windKph} km/h
+            {data.weather.windDirection ? ` ${data.weather.windDirection}` : ""}
+          </Badge>
+        )}
     </div>
   );
 }
@@ -214,6 +231,7 @@ export function LiveStagePanel({
   year,
   stageNumber,
   route,
+  pois,
 }: LiveStagePanelProps) {
   const [data, setData] = useState<ProLiveStageData | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,10 +281,12 @@ export function LiveStagePanel({
   }, [raceKey, year, stageNumber]);
 
   const live = data?.live === true;
-  const dots = useMemo(
-    () => (live && data ? ridersToDots(data.riders) : undefined),
-    [live, data],
-  );
+  const dots = useMemo(() => {
+    // POI dots have a smaller radius, so the rider dots draw on top of them.
+    const poiDots = poisToDots(pois);
+    if (live && data) return [...poiDots, ...ridersToDots(data.riders)];
+    return poiDots.length > 0 ? poiDots : undefined;
+  }, [live, data, pois]);
 
   return (
     <div className="space-y-4">

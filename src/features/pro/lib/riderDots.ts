@@ -1,5 +1,5 @@
 import type { MapDot } from "@/features/rides/types";
-import type { ProJersey, ProLiveRider } from "../types";
+import type { ProJersey, ProLiveRider, ProStagePoi } from "../types";
 import { formatGap } from "./format";
 
 /** Dot fill colors per jersey; regular GPS-tracked riders are blue. */
@@ -11,6 +11,35 @@ export const JERSEY_COLORS: Record<ProJersey, string> = {
 };
 
 export const DEFAULT_RIDER_COLOR = "#3b82f6";
+
+/** POI dot colors: KOM climbs echo the polka jersey, sprints the green one. */
+export const KOM_COLOR = "#dc2626";
+export const SPRINT_COLOR = "#16a34a";
+
+/** Maps KOM/sprint POIs to map dots; rider dots (larger radius) draw on top. */
+export function poisToDots(pois: ProStagePoi[]): MapDot[] {
+  return pois.map((poi) => {
+    const details =
+      poi.kind === "kom"
+        ? [
+            poi.category ? `Cat. ${poi.category}` : null,
+            poi.climbLengthMeters !== null
+              ? `${(poi.climbLengthMeters / 1000).toFixed(1)} km climb`
+              : null,
+            poi.gradientPct !== null ? `${poi.gradientPct}%` : null,
+          ]
+        : ["Sprint", poi.km !== null ? `km ${poi.km}` : null];
+    return {
+      id: `${poi.kind}-${poi.km ?? poi.name}`,
+      lat: poi.lat,
+      lng: poi.lng,
+      color: poi.kind === "kom" ? KOM_COLOR : SPRINT_COLOR,
+      radius: 5,
+      title: poi.name ?? (poi.kind === "kom" ? "Climb" : "Sprint"),
+      subtitle: details.filter(Boolean).join(" · ") || undefined,
+    };
+  });
+}
 
 export const JERSEY_LABELS: Record<ProJersey, string> = {
   yellow: "Yellow jersey",

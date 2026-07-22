@@ -2,7 +2,6 @@
 
 import { getCurrentUser } from "@/features/auth/guards";
 import { createAsoClient } from "../lib/clients";
-import { toIsoDate } from "../lib/format";
 import { teamImages } from "../lib/images";
 import { PRO_RACES, type ProRaceConfig } from "../lib/races";
 import type { ProRaceStatus, ProRaceSummary } from "../types";
@@ -33,7 +32,7 @@ async function summarizeRace(
     aso.getTeams().catch(() => []),
   ]);
   const dates = stages
-    .map((stage) => toIsoDate(stage.date))
+    .map((stage) => stage.dateLocal ?? null)
     .filter((date): date is string => date !== null)
     .sort();
   const startDate = dates[0] ?? null;

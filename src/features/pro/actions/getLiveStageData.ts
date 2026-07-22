@@ -1,8 +1,9 @@
 "use server";
 
-import type { AsoTelemetry } from "procycling-live/aso";
+import type { AsoCompetitor, AsoTeam, AsoTelemetry } from "procycling-live/aso";
 import { TissotClient } from "procycling-live/tissot";
 import { getCurrentUser } from "@/features/auth/guards";
+import { nearestCheckpointWeather } from "../lib/checkpoints";
 import {
   createAsoClient,
   createLiveAsoClient,
@@ -10,23 +11,39 @@ import {
 } from "../lib/clients";
 import {
   buildRiderIndex,
-  mapAsoRanking,
+  mapAsoGcRows,
   mapTelemetry,
   mapTissotRanking,
-  pickTelemetryFrame,
   type RiderIdentity,
 } from "../lib/live";
 import { getProRace, type ProRaceConfig } from "../lib/races";
-import type { ProLiveStageData, ProStandingRow } from "../types";
+import type {
+  ProLiveStageData,
+  ProLiveWeather,
+  ProStandingRow,
+} from "../types";
 
 const NOT_LIVE: ProLiveStageData = {
   live: false,
   updatedAt: null,
   riders: [],
   info: null,
+  weather: null,
   jerseyHolders: [],
   ranking: [],
   rankingSource: null,
+};
+
+type StartlistData = {
+  competitors: AsoCompetitor[];
+  teams: AsoTeam[];
+  index: Map<number, RiderIdentity>;
+};
+
+const EMPTY_STARTLIST: StartlistData = {
+  competitors: [],
+  teams: [],
+  index: new Map(),
 };
 
 /**
@@ -34,20 +51,20 @@ const NOT_LIVE: ProLiveStageData = {
  * teams don't change mid-stage, so only the telemetry/rankings themselves need
  * to bypass the cache.
  */
-async function fetchRiderIndex(
+async function fetchStartlist(
   race: ProRaceConfig,
   year: number,
-): Promise<Map<number, RiderIdentity>> {
-  if (!race.asoRace) return new Map();
+): Promise<StartlistData> {
+  if (!race.asoRace) return EMPTY_STARTLIST;
   try {
     const aso = createAsoClient(race.asoRace, year);
     const [competitors, teams] = await Promise.all([
-      aso.getCompetitors(),
+      aso.getRiders(),
       aso.getTeams(),
     ]);
-    return buildRiderIndex(competitors, teams);
+    return { competitors, teams, index: buildRiderIndex(competitors, teams) };
   } catch {
-    return new Map();
+    return EMPTY_STARTLIST;
   }
 }
 
@@ -56,7 +73,7 @@ async function fetchLiveRanking(
   race: ProRaceConfig,
   year: number,
   stageNumber: number,
-  index: Map<number, RiderIdentity>,
+  startlist: StartlistData,
 ): Promise<{ ranking: ProStandingRow[]; source: "tissot" | "aso" | null }> {
   if (race.tissotCode) {
     try {
@@ -75,13 +92,51 @@ async function fetchLiveRanking(
     try {
       const aso = createLiveAsoClient(race.asoRace, year);
       const payload = await aso.getRankings(stageNumber);
-      const ranking = mapAsoRanking(payload, index);
+      const ranking = mapAsoGcRows(
+        payload,
+        startlist.competitors,
+        startlist.teams,
+        startlist.index,
+      );
       if (ranking.length > 0) return { ranking, source: "aso" };
     } catch {
       // No live ranking available.
     }
   }
   return { ranking: [], source: null };
+}
+
+/**
+ * Weather near the head of the race: the meteo record of the course checkpoint
+ * closest to the leading GPS-tracked rider. Checkpoints are slow-changing
+ * course data, so the cached client is fine; the meteo record itself is
+ * updated upstream inside the same payload.
+ */
+async function fetchHeadWeather(
+  race: ProRaceConfig,
+  year: number,
+  stageNumber: number,
+  riders: ProLiveStageData["riders"],
+): Promise<ProLiveWeather | null> {
+  if (!race.asoRace) return null;
+  const head = riders.reduce<(typeof riders)[number] | null>(
+    (best, rider) =>
+      rider.kmToFinish !== null &&
+      (best === null || rider.kmToFinish < (best.kmToFinish ?? Infinity))
+        ? rider
+        : best,
+    null,
+  );
+  if (!head) return null;
+  try {
+    const checkpoints = await createAsoClient(
+      race.asoRace,
+      year,
+    ).getCheckpoints(stageNumber);
+    return nearestCheckpointWeather(checkpoints, head.lat, head.lng);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -105,20 +160,22 @@ export async function getLiveStageData(
 
   let telemetry: AsoTelemetry | null;
   try {
-    // The bind is really an array of per-stage frames; unwrap the one for this
-    // stage. Anything else (dead upstream, another stage live) means not live.
-    const raw = await createLiveAsoClient(race.asoRace, year).getTelemetry();
-    telemetry = pickTelemetryFrame(raw, stageNumber);
+    // The frame for this stage only — anything else (dead upstream, another
+    // stage live) means not live.
+    telemetry = await createLiveAsoClient(
+      race.asoRace,
+      year,
+    ).getTelemetryForStage(stageNumber);
   } catch {
     // A dead upstream degrades to "no live data" rather than an error.
     return NOT_LIVE;
   }
   if (!telemetry) return NOT_LIVE;
 
-  const index = await fetchRiderIndex(race, year);
+  const startlist = await fetchStartlist(race, year);
   const { riders, info, jerseyHolders, updatedAt } = mapTelemetry(
     telemetry,
-    index,
+    startlist.index,
   );
   // A matched frame with no GPS-tracked riders isn't meaningfully live: show
   // the regular route view instead of a "Live" badge with an empty map.
@@ -128,14 +185,16 @@ export async function getLiveStageData(
     race,
     year,
     stageNumber,
-    index,
+    startlist,
   );
+  const weather = await fetchHeadWeather(race, year, stageNumber, riders);
 
   return {
     live: true,
     updatedAt,
     riders,
     info,
+    weather,
     jerseyHolders,
     ranking,
     rankingSource: source,

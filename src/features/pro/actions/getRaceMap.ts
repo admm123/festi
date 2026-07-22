@@ -145,8 +145,8 @@ async function fetchGpxStages(
         const base = number === 0 ? "Prologue" : `Stage ${number}`;
         labels.set(
           number,
-          stage.departure?.name && stage.arrival?.name
-            ? `${base} · ${stage.departure.name} → ${stage.arrival.name}`
+          stage.departureCity?.label && stage.arrivalCity?.label
+            ? `${base} · ${stage.departureCity.label} → ${stage.arrivalCity.label}`
             : base,
         );
       }

@@ -3,7 +3,6 @@ import {
   createAsoClient,
   createLiveAsoClient,
 } from "@/features/pro/lib/clients";
-import { toIsoDate } from "@/features/pro/lib/format";
 import { buildRiderIndex, mapTelemetry } from "@/features/pro/lib/live";
 import { PRO_RACES, type ProRaceConfig } from "@/features/pro/lib/races";
 import { prisma } from "@/lib/prisma";
@@ -31,7 +30,7 @@ async function captureRace(
   // only the telemetry snapshot itself must bypass the fetch cache.
   const aso = createAsoClient(race.asoRace, year);
   const stages = await aso.getStages();
-  const todayStage = stages.find((stage) => toIsoDate(stage.date) === today);
+  const todayStage = stages.find((stage) => stage.dateLocal === today);
   if (!todayStage) return null;
   const stageNumber = todayStage.stage ?? todayStage.id;
   if (typeof stageNumber !== "number") return null;
@@ -39,11 +38,11 @@ async function captureRace(
   const telemetry = await createLiveAsoClient(
     race.asoRace,
     year,
-  ).getTelemetry();
+  ).getTelemetryForStage(stageNumber);
   if (!telemetry) return null;
 
   const [competitors, teams] = await Promise.all([
-    aso.getCompetitors(),
+    aso.getRiders(),
     aso.getTeams(),
   ]);
   const index = buildRiderIndex(competitors, teams);

@@ -37,6 +37,8 @@ export type ProStartlistRider = {
   nationality: string | null;
   /** Head-shot photo URL from ASO, when available. */
   photoUrl: string | null;
+  /** Stage the rider abandoned during; null while still in the race. */
+  withdrawnStage: number | null;
 };
 
 export type ProStartlistTeam = {
@@ -95,6 +97,22 @@ export type ProStageRoute = {
   sourceUrl: string | null;
 };
 
+/** A point of interest along the stage route (KOM climb or sprint). */
+export type ProStagePoi = {
+  kind: "kom" | "sprint";
+  name: string | null;
+  /** Km from the stage start. */
+  km: number | null;
+  lat: number;
+  lng: number;
+  /** KOM category ("H", "1".."4"); null for sprints. */
+  category: string | null;
+  /** Climb length in meters (KOM only). */
+  climbLengthMeters: number | null;
+  /** Climb gradient in % (KOM only). */
+  gradientPct: number | null;
+};
+
 /** Everything the stage detail page renders. */
 export type ProStageDetail = {
   raceKey: string;
@@ -103,6 +121,8 @@ export type ProStageDetail = {
   stage: ProStage;
   /** Null when no GPX route is published for this stage. */
   route: ProStageRoute | null;
+  /** KOM climbs and sprints along the route; empty when none are published. */
+  pois: ProStagePoi[];
 };
 
 /** Jersey colors, in ASO's YGPW order. */
@@ -141,6 +161,16 @@ export type ProLiveInfo = {
   gradientPct: number | null;
 };
 
+/** Live weather from the checkpoint nearest to the head of the race. */
+export type ProLiveWeather = {
+  temperatureC: number | null;
+  windKph: number | null;
+  windDirection: string | null;
+  description: string | null;
+  /** Name of the checkpoint this weather was measured at. */
+  place: string | null;
+};
+
 /** The rider currently leading one of the four ASO classifications. */
 export type ProJerseyHolder = {
   jersey: ProJersey;
@@ -155,6 +185,8 @@ export type ProLiveStageData = {
   updatedAt: number | null;
   riders: ProLiveRider[];
   info: ProLiveInfo | null;
+  /** Weather near the head of the race, from the closest checkpoint. */
+  weather: ProLiveWeather | null;
   /** Current YGPW jersey leaders, in yellow/green/polka/white order. */
   jerseyHolders: ProJerseyHolder[];
   /** Current live classification, empty when none is published. */
@@ -185,6 +217,18 @@ export type ProStageReport = {
   id: string;
   name: string;
   stage: number;
+};
+
+/** One race-center news/commentary item from ASO. */
+export type ProNewsArticle = {
+  id: string;
+  title: string;
+  /** Body paragraphs, HTML stripped. */
+  paragraphs: string[];
+  stage: number;
+  /** ISO timestamp (race-local, with offset), when published. */
+  publishedAt: string | null;
+  pinned: boolean;
 };
 
 /** One persisted telemetry snapshot, replayed on past stage pages. */

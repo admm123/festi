@@ -28,15 +28,21 @@ export async function getRaceReports(
     const tissot = createTissotClient();
     const competitionId = TissotClient.competitionId(race.tissotCode, year);
     const schedule = await tissot.getSchedule(competitionId);
-    if (schedule.length === 0) return [];
+    if (schedule.stages.length === 0) return [];
 
-    // Only stages whose start date has passed can have reports.
+    // Only stages whose start date has passed can have reports. The stage
+    // dates are naive race-local timestamps — parse as UTC, then subtract the
+    // event's utcOffset to get the actual start instant.
     const now = Date.now();
-    const startedStages = schedule
-      // Reports are addressed by the 1-based stage number, like rankings.
-      .map((stage, index) => ({ stage, number: index + 1 }))
+    const offsetMs = (schedule.utcOffset ?? 0) * 3_600_000;
+    const startedStages = schedule.stages
+      // Reports are addressed by the plain stage number (phaseId), not the
+      // schedule record's key.
+      .map((stage, index) => ({ stage, number: stage.phaseId ?? index + 1 }))
       .filter(({ stage }) => {
-        const start = stage.date ? Date.parse(stage.date) : Number.NaN;
+        const start = stage.date
+          ? Date.parse(`${stage.date}Z`) - offsetMs
+          : Number.NaN;
         return !Number.isNaN(start) && start <= now;
       });
 

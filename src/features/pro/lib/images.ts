@@ -4,9 +4,9 @@ import type { AsoCompetitor, AsoTeam } from "procycling-live/aso";
 
 /**
  * ASO's Racecenter records carry image URLs (team logos/jerseys, rider photos)
- * on their `img.aso.fr` CDN, but these fields sit outside the typed interfaces
- * and arrive via the records' index signature as `unknown`. This module reads
- * them defensively and joins teams to the loosely-typed standings rows.
+ * on their `img.aso.fr` CDN. This module reads them and joins teams/riders
+ * onto the loosely-typed Tissot standings rows — teams by code and name,
+ * riders by UCI licence code with a normalized-name fallback.
  */
 
 function str(value: unknown): string | null {
@@ -93,6 +93,23 @@ export function lookupRiderPhoto(
 ): string | null {
   const key = normalizeRiderName(name);
   return key ? (index.get(key) ?? null) : null;
+}
+
+/**
+ * Index of rider head-shots keyed by the 11-digit UCI licence code — the
+ * canonical join key against Tissot data (`TissotRider.uciRiderId`), far more
+ * robust than the name matching above.
+ */
+export function buildRiderUciIndex(
+  competitors: AsoCompetitor[],
+): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const competitor of competitors) {
+    const photo = riderPhotoUrl(competitor);
+    const code = str(competitor.UCICode);
+    if (photo && code && !index.has(code)) index.set(code, photo);
+  }
+  return index;
 }
 
 /** Normalizes a team code or name into a comparable key (A-Z0-9 only). */
