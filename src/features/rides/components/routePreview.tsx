@@ -2,13 +2,15 @@
 
 import { useMemo } from "react";
 import { decodeRouteGeometry } from "../lib/geometry";
-import type { Waypoint } from "../types";
+import type { MapDot, Waypoint } from "../types";
 import { RideMap } from "./rideMap";
 
 type RoutePreviewProps = {
   routeGeometry: string;
   waypoints: Waypoint[];
   highlight?: [number, number] | null;
+  /** Points drawn on top of the route (e.g. live rider positions). */
+  dots?: MapDot[];
   className?: string;
 };
 
@@ -17,6 +19,7 @@ export function RoutePreview({
   routeGeometry,
   waypoints,
   highlight,
+  dots,
   className,
 }: RoutePreviewProps) {
   const coordinates = useMemo(
@@ -29,6 +32,7 @@ export function RoutePreview({
       waypoints={waypoints}
       routeCoordinates={coordinates}
       highlight={highlight}
+      dots={dots}
       className={className}
     />
   );

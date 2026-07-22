@@ -90,3 +90,69 @@ export type ProStageDetail = {
   /** Null when no GPX route is published for this stage. */
   route: ProStageRoute | null;
 };
+
+/** Jersey colors, in ASO's YGPW order. */
+export type ProJersey = "yellow" | "green" | "polka" | "white";
+
+/** One rider position from the live GPS telemetry feed. */
+export type ProLiveRider = {
+  bib: number;
+  lat: number;
+  lng: number;
+  /** "Firstname Lastname", when the bib matched the startlist. */
+  name: string | null;
+  team: string | null;
+  /** Jersey worn by this rider, when they lead a classification. */
+  jersey: ProJersey | null;
+  /** Instantaneous speed (km/h). */
+  kph: number | null;
+  kmToFinish: number | null;
+  /** Gap to the first rider on the road (seconds). */
+  secToFirstRider: number | null;
+};
+
+/** Summary numbers for the live info strip, from the head of the race. */
+export type ProLiveInfo = {
+  /** Distance left for the leading rider (km). */
+  kmToFinish: number | null;
+  /** Speed of the head of the race (km/h). */
+  speedKph: number | null;
+  /** Average speed of the head of the race (km/h). */
+  avgSpeedKph: number | null;
+  /** Temperature at the front of the race (°C). */
+  temperatureC: number | null;
+  /** Road gradient at the front of the race (%). */
+  gradientPct: number | null;
+};
+
+/** Payload the live stage panel polls for. */
+export type ProLiveStageData = {
+  /** False when the upstream reports no live racing (telemetry is 204/null). */
+  live: boolean;
+  /** Epoch ms of the telemetry frame, when the upstream provides it. */
+  updatedAt: number | null;
+  riders: ProLiveRider[];
+  info: ProLiveInfo | null;
+  /** Current live classification, empty when none is published. */
+  ranking: ProStandingRow[];
+  rankingSource: "tissot" | "aso" | null;
+};
+
+/** An official Tissot report PDF for one stage. */
+export type ProStageReport = {
+  id: string;
+  name: string;
+  stage: number;
+};
+
+/** One persisted telemetry snapshot, replayed on past stage pages. */
+export type ProReplayFrame = {
+  /** Epoch ms the frame was captured at. */
+  capturedAt: number;
+  riders: ProLiveRider[];
+};
+
+/** Replay payload for a past stage; frames are in chronological order. */
+export type ProStageReplay = {
+  frames: ProReplayFrame[];
+};
