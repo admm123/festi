@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRaceDetail } from "@/features/pro/actions/getRaceDetail";
+import { getRaceMap } from "@/features/pro/actions/getRaceMap";
 import { getRaceReports } from "@/features/pro/actions/getRaceReports";
+import { RaceMap } from "@/features/pro/components/raceMap";
 import { formatStageType } from "@/features/pro/lib/format";
 import type { ProRaceDetail, ProStageReport } from "@/features/pro/types";
 
@@ -291,9 +293,10 @@ export default async function ProRacePage({
     notFound();
   }
 
-  const [detail, reports] = await Promise.all([
+  const [detail, reports, raceMap] = await Promise.all([
     getRaceDetail(raceKey, year),
     getRaceReports(raceKey, year),
+    getRaceMap(raceKey, year),
   ]);
   if (!detail) {
     notFound();
@@ -318,6 +321,32 @@ export default async function ProRacePage({
           </p>
         </div>
       </div>
+
+      {raceMap && raceMap.stages.length > 0 && (
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <RaceMap
+              stages={raceMap.stages}
+              raceKey={detail.key}
+              year={detail.year}
+              className="h-[320px] lg:h-[420px]"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t p-3 text-xs text-muted-foreground">
+              <span>
+                {raceMap.stages.length}{" "}
+                {raceMap.stages.length === 1 ? "route" : "stage routes"}
+                {raceMap.totalDistanceKm !== null &&
+                  ` · ${raceMap.totalDistanceKm.toLocaleString("en-US")} km total`}
+                {" · tap a stage for details"}
+              </span>
+              <span>
+                Route data:{" "}
+                {raceMap.source === "tissot" ? "Tissot" : "cyclingstage.com"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="stages">
         <TabsList>

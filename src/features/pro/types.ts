@@ -138,6 +138,24 @@ export type ProLiveStageData = {
   rankingSource: "tissot" | "aso" | null;
 };
 
+/** One stage line on the race overview map. */
+export type ProRaceMapStage = {
+  /** Stage number when known (0 = prologue); null e.g. for a full-route line. */
+  number: number | null;
+  name: string;
+  /** Encoded polyline of the downsampled stage geometry. */
+  geometry: string;
+  distanceKm: number | null;
+};
+
+/** Overview map payload for the race detail page: all stages at once. */
+export type ProRaceMap = {
+  /** Where the geometry came from: the official Tissot KMZ or per-stage GPX. */
+  source: "tissot" | "gpx";
+  stages: ProRaceMapStage[];
+  totalDistanceKm: number | null;
+};
+
 /** An official Tissot report PDF for one stage. */
 export type ProStageReport = {
   id: string;
