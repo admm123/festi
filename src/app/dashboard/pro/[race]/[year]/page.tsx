@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  FileTextIcon,
   ListOrderedIcon,
   TrophyIcon,
   UsersIcon,
@@ -28,8 +29,11 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRaceDetail } from "@/features/pro/actions/getRaceDetail";
+import { getRaceMap } from "@/features/pro/actions/getRaceMap";
+import { getRaceReports } from "@/features/pro/actions/getRaceReports";
+import { RaceMap } from "@/features/pro/components/raceMap";
 import { formatStageType } from "@/features/pro/lib/format";
-import type { ProRaceDetail } from "@/features/pro/types";
+import type { ProRaceDetail, ProStageReport } from "@/features/pro/types";
 
 function stageLabel(stageNumber: number): string {
   return stageNumber === 0 ? "Prologue" : `Stage ${stageNumber}`;
@@ -209,6 +213,75 @@ function StandingsTab({ detail }: { detail: ProRaceDetail }) {
   );
 }
 
+function ReportsTab({
+  detail,
+  reports,
+}: {
+  detail: ProRaceDetail;
+  reports: ProStageReport[];
+}) {
+  if (reports.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileTextIcon />
+          </EmptyMedia>
+          <EmptyTitle>No official reports yet</EmptyTitle>
+          <EmptyDescription>
+            {detail.hasStandingsSource
+              ? "Official PDFs appear here once stages are timed."
+              : "This race has no timing partner publishing reports."}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  const byStage = new Map<number, ProStageReport[]>();
+  for (const report of reports) {
+    const group = byStage.get(report.stage) ?? [];
+    group.push(report);
+    byStage.set(report.stage, group);
+  }
+
+  return (
+    <div className="space-y-4">
+      {[...byStage.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([stageNumber, stageReports]) => (
+          <Card key={stageNumber}>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {stageLabel(stageNumber)}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {stageReports.map((report) => (
+                <Button
+                  key={report.id}
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="max-w-full"
+                >
+                  <a
+                    href={`/api/pro/reports/${encodeURIComponent(report.id)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <FileTextIcon className="size-3.5" />
+                    <span className="truncate">{report.name}</span>
+                  </a>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+    </div>
+  );
+}
+
 export default async function ProRacePage({
   params,
 }: {
@@ -220,7 +293,11 @@ export default async function ProRacePage({
     notFound();
   }
 
-  const detail = await getRaceDetail(raceKey, year);
+  const [detail, reports, raceMap] = await Promise.all([
+    getRaceDetail(raceKey, year),
+    getRaceReports(raceKey, year),
+    getRaceMap(raceKey, year),
+  ]);
   if (!detail) {
     notFound();
   }
@@ -245,11 +322,38 @@ export default async function ProRacePage({
         </div>
       </div>
 
+      {raceMap && raceMap.stages.length > 0 && (
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <RaceMap
+              stages={raceMap.stages}
+              raceKey={detail.key}
+              year={detail.year}
+              className="h-[320px] lg:h-[420px]"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t p-3 text-xs text-muted-foreground">
+              <span>
+                {raceMap.stages.length}{" "}
+                {raceMap.stages.length === 1 ? "route" : "stage routes"}
+                {raceMap.totalDistanceKm !== null &&
+                  ` · ${raceMap.totalDistanceKm.toLocaleString("en-US")} km total`}
+                {" · tap a stage for details"}
+              </span>
+              <span>
+                Route data:{" "}
+                {raceMap.source === "tissot" ? "Tissot" : "cyclingstage.com"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="stages">
         <TabsList>
           <TabsTrigger value="stages">Stages</TabsTrigger>
           <TabsTrigger value="startlist">Startlist</TabsTrigger>
           <TabsTrigger value="standings">Standings</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
         <TabsContent value="stages" className="mt-4">
           <StagesTab detail={detail} />
@@ -259,6 +363,9 @@ export default async function ProRacePage({
         </TabsContent>
         <TabsContent value="standings" className="mt-4">
           <StandingsTab detail={detail} />
+        </TabsContent>
+        <TabsContent value="reports" className="mt-4">
+          <ReportsTab detail={detail} reports={reports} />
         </TabsContent>
       </Tabs>
     </div>

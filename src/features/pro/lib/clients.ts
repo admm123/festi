@@ -10,6 +10,12 @@ import { TissotClient } from "procycling-live/tissot";
  */
 const CACHE_OPTIONS = { next: { revalidate: 3600 } };
 
+/**
+ * Live data (telemetry, mid-race rankings) must never be served stale: these
+ * clients bypass the Next fetch cache entirely.
+ */
+const LIVE_OPTIONS = { next: { revalidate: 0 } };
+
 export function createAsoClient(race: AsoRace, year: number): AsoClient {
   return new AsoClient({ race, year, ...CACHE_OPTIONS });
 }
@@ -20,4 +26,12 @@ export function createTissotClient(): TissotClient {
 
 export function createCyclingStageClient(): CyclingStageClient {
   return new CyclingStageClient(CACHE_OPTIONS);
+}
+
+export function createLiveAsoClient(race: AsoRace, year: number): AsoClient {
+  return new AsoClient({ race, year, ...LIVE_OPTIONS });
+}
+
+export function createLiveTissotClient(): TissotClient {
+  return new TissotClient(LIVE_OPTIONS);
 }

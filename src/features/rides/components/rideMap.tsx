@@ -1,7 +1,12 @@
 "use client";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
+import type {
+  GeoJSONSource,
+  MapLayerMouseEvent,
+  Map as MapLibreMap,
+  Marker,
+} from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -9,7 +14,7 @@ import {
   DEFAULT_MAP_ZOOM,
   getMapStyle,
 } from "../lib/mapStyle";
-import type { Waypoint } from "../types";
+import type { MapDot, Waypoint } from "../types";
 
 type RideMapProps = {
   waypoints: Waypoint[];
@@ -26,6 +31,8 @@ type RideMapProps = {
   initialCenter?: [number, number];
   /** A point `[lng, lat]` to highlight on the route (e.g. elevation hover). */
   highlight?: [number, number] | null;
+  /** Points drawn on top of the route (e.g. live rider positions). */
+  dots?: MapDot[];
   className?: string;
 };
 
@@ -36,6 +43,8 @@ const DRAG_SOURCE_ID = "ride-drag";
 const DRAG_LAYER_ID = "ride-drag-line";
 const HIGHLIGHT_SOURCE_ID = "ride-highlight";
 const HIGHLIGHT_LAYER_ID = "ride-highlight-point";
+const DOTS_SOURCE_ID = "ride-dots";
+const DOTS_LAYER_ID = "ride-dots-points";
 
 /** Index of the coordinate in `coords` closest to `target` (squared distance). */
 function nearestRouteIndex(
@@ -92,6 +101,7 @@ export function RideMap({
   onMoveWaypoint,
   initialCenter,
   highlight,
+  dots,
   className,
 }: RideMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -312,6 +322,62 @@ export function RideMap({
             "circle-stroke-width": 3,
           },
         });
+
+        // Overlay dots (e.g. live rider positions) with a hover/tap popup.
+        map.addSource(DOTS_SOURCE_ID, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: DOTS_LAYER_ID,
+          type: "circle",
+          source: DOTS_SOURCE_ID,
+          paint: {
+            "circle-radius": 6,
+            "circle-color": ["get", "color"],
+            "circle-stroke-color": ["coalesce", ["get", "stroke"], "#ffffff"],
+            "circle-stroke-width": 2,
+          },
+        });
+
+        const dotsPopup = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          offset: 10,
+        });
+        const showDotPopup = (event: MapLayerMouseEvent) => {
+          const feature = event.features?.[0];
+          if (!feature || !map) return;
+          const props = feature.properties as {
+            title?: string;
+            subtitle?: string;
+          };
+          if (!props?.title) return;
+          const content = document.createElement("div");
+          content.className = "text-xs text-neutral-900";
+          const title = document.createElement("div");
+          title.className = "font-semibold";
+          title.textContent = props.title;
+          content.appendChild(title);
+          if (props.subtitle) {
+            const subtitle = document.createElement("div");
+            subtitle.className = "text-neutral-500";
+            subtitle.textContent = props.subtitle;
+            content.appendChild(subtitle);
+          }
+          dotsPopup.setLngLat(event.lngLat).setDOMContent(content).addTo(map);
+        };
+        map.on("mouseenter", DOTS_LAYER_ID, (event) => {
+          if (map) map.getCanvas().style.cursor = "pointer";
+          showDotPopup(event);
+        });
+        map.on("mousemove", DOTS_LAYER_ID, showDotPopup);
+        map.on("mouseleave", DOTS_LAYER_ID, () => {
+          if (map) map.getCanvas().style.cursor = "";
+          dotsPopup.remove();
+        });
+        // Tap support on touch devices, where mouseenter never fires.
+        map.on("click", DOTS_LAYER_ID, showDotPopup);
 
         map.on("mouseenter", ROUTE_HIT_LAYER_ID, () => {
           if (interactiveRef.current && map) {
@@ -535,6 +601,31 @@ export function RideMap({
       });
     }
   }, [highlight, ready]);
+
+  // Update the overlay dots (live rider positions) whenever they change.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) {
+      return;
+    }
+
+    const source = map.getSource(DOTS_SOURCE_ID);
+    if (source && "setData" in source) {
+      (source as GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: (dots ?? []).map((dot) => ({
+          type: "Feature",
+          properties: {
+            color: dot.color,
+            stroke: dot.stroke ?? "#ffffff",
+            title: dot.title ?? "",
+            subtitle: dot.subtitle ?? "",
+          },
+          geometry: { type: "Point", coordinates: [dot.lng, dot.lat] },
+        })),
+      });
+    }
+  }, [dots, ready]);
 
   // Fit the view to the route. Only on read-only previews — auto-fitting while
   // the user is placing waypoints fights their clicks by zooming/panning.

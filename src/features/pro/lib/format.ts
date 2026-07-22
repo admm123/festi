@@ -13,6 +13,18 @@ export function formatStageType(type: string | null): string | null {
   return STAGE_TYPE_LABELS[type] ?? type;
 }
 
+/** Formats a gap in seconds as `+m:ss` (or `+h:mm:ss` beyond an hour). */
+export function formatGap(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) {
+    return `+${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+  return `+${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
 /** Parses an upstream date string into an ISO date (yyyy-mm-dd), or null. */
 export function toIsoDate(value: string | undefined): string | null {
   if (!value) return null;

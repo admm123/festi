@@ -1,5 +1,19 @@
 export type Waypoint = { lat: number; lng: number };
 
+/** A point rendered on top of the route (e.g. a live rider position). */
+export type MapDot = {
+  id: string | number;
+  lat: number;
+  lng: number;
+  /** CSS fill color of the dot. */
+  color: string;
+  /** CSS stroke color; defaults to white. */
+  stroke?: string;
+  /** Popup title shown on hover/tap (e.g. a rider's name). */
+  title?: string;
+  subtitle?: string;
+};
+
 export type RouteProfile = "trekking" | "fastbike" | "gravel";
 
 export type RideParticipantStatus =

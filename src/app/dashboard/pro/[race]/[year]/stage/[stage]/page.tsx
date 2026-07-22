@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getStageDetail } from "@/features/pro/actions/getStageDetail";
+import { getStageReplay } from "@/features/pro/actions/getStageReplay";
+import { LiveStagePanel } from "@/features/pro/components/liveStagePanel";
+import { ReplayPanel } from "@/features/pro/components/replayPanel";
 import { StageRoutePanel } from "@/features/pro/components/stageRoutePanel";
 import { formatStageType } from "@/features/pro/lib/format";
 
@@ -42,6 +45,17 @@ export default async function ProStagePage({
   }
 
   const { stage, route } = detail;
+
+  // Live coverage only makes sense on the stage's race day; past stages get a
+  // replay instead when telemetry frames were captured during the stage.
+  const today = new Date().toISOString().slice(0, 10);
+  const isRaceDay = stage.date !== null && stage.date === today;
+  const isPast = stage.date !== null && stage.date < today;
+  const replay =
+    isPast && route !== null
+      ? await getStageReplay(raceKey, year, stageNumber)
+      : null;
+
   const title = stageNumber === 0 ? "Prologue" : `Stage ${stageNumber}`;
   const distanceKm =
     route !== null
@@ -101,17 +115,7 @@ export default async function ProStagePage({
         </div>
       </div>
 
-      {route ? (
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <StageRoutePanel
-              routeGeometry={route.routeGeometry}
-              waypoints={route.waypoints}
-              elevationProfile={route.elevationProfile}
-            />
-          </CardContent>
-        </Card>
-      ) : (
+      {route === null && (
         <Card>
           <CardContent className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
             <MapPinOffIcon className="size-5 shrink-0" />
@@ -119,6 +123,29 @@ export default async function ProStagePage({
             profile will appear once it is.
           </CardContent>
         </Card>
+      )}
+
+      {isRaceDay ? (
+        <LiveStagePanel
+          raceKey={detail.raceKey}
+          year={detail.year}
+          stageNumber={stageNumber}
+          route={route}
+        />
+      ) : replay !== null && replay.frames.length > 0 && route !== null ? (
+        <ReplayPanel route={route} frames={replay.frames} />
+      ) : (
+        route !== null && (
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <StageRoutePanel
+                routeGeometry={route.routeGeometry}
+                waypoints={route.waypoints}
+                elevationProfile={route.elevationProfile}
+              />
+            </CardContent>
+          </Card>
+        )
       )}
 
       <p className="text-xs text-muted-foreground">

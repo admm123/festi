@@ -545,6 +545,25 @@ model RadnetEvent {
   @@map("radnet_event")
 }
 
+// One captured live-telemetry snapshot for a pro race stage. Rows are written
+// by the cron-driven /api/pro/capture endpoint during live racing (the
+// upstream only ever serves the current frame) and read back by the stage
+// replay UI. `capturedAt` carries the upstream's `_updatedAt`, so the unique
+// constraint dedupes unchanged frames.
+model ProTelemetryFrame {
+  id         String   @id @default(cuid())
+  raceKey    String
+  year       Int
+  stage      Int
+  capturedAt DateTime
+  payload    Json
+  createdAt  DateTime @default(now())
+
+  @@unique([raceKey, year, stage, capturedAt])
+  @@index([raceKey, year, stage])
+  @@map("pro_telemetry_frame")
+}
+
 // Singleton row (id = 1) tracking calendar sync freshness and acting as a
 // lock so concurrent visitors don't scrape rad-net in parallel.
 model RadnetSyncState {

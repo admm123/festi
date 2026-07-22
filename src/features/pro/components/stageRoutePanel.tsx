@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { ElevationChart } from "@/features/rides/components/elevationChart";
 import { RoutePreview } from "@/features/rides/components/routePreview";
-import type { ElevationPoint, Waypoint } from "@/features/rides/types";
+import type { ElevationPoint, MapDot, Waypoint } from "@/features/rides/types";
 
 type StageRoutePanelProps = {
   routeGeometry: string;
   waypoints: Waypoint[];
   elevationProfile: ElevationPoint[];
+  /** Rider positions (live or replayed) drawn on top of the route. */
+  riderDots?: MapDot[];
 };
 
 /**
@@ -20,6 +22,7 @@ export function StageRoutePanel({
   routeGeometry,
   waypoints,
   elevationProfile,
+  riderDots,
 }: StageRoutePanelProps) {
   const [highlight, setHighlight] = useState<[number, number] | null>(null);
 
@@ -30,6 +33,7 @@ export function StageRoutePanel({
           routeGeometry={routeGeometry}
           waypoints={waypoints}
           highlight={highlight}
+          dots={riderDots}
         />
       </div>
       {elevationProfile.length >= 2 && (
