@@ -112,18 +112,68 @@ function StartlistTab({ detail }: { detail: ProRaceDetail }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {detail.startlist.map((team) => (
-        <Card key={team.name}>
+        <Card
+          key={team.name}
+          className="overflow-hidden"
+          style={
+            team.color ? { borderLeft: `3px solid ${team.color}` } : undefined
+          }
+        >
           <CardHeader className="flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">{team.name}</CardTitle>
-            {team.code && <Badge variant="secondary">{team.code}</Badge>}
+            <div className="flex min-w-0 items-center gap-2.5">
+              {team.logoUrl && (
+                // biome-ignore lint/performance/noImgElement: external ASO CDN logo
+                <img
+                  src={team.logoUrl}
+                  alt=""
+                  loading="lazy"
+                  className="size-8 shrink-0 object-contain"
+                />
+              )}
+              <div className="min-w-0">
+                <CardTitle className="truncate text-base">
+                  {team.name}
+                </CardTitle>
+                {team.code && (
+                  <span className="text-xs text-muted-foreground">
+                    {team.code}
+                  </span>
+                )}
+              </div>
+            </div>
+            {team.jerseyUrl && (
+              // biome-ignore lint/performance/noImgElement: external ASO CDN jersey
+              <img
+                src={team.jerseyUrl}
+                alt={`${team.name} jersey`}
+                loading="lazy"
+                className="size-10 shrink-0 object-contain"
+              />
+            )}
           </CardHeader>
           <CardContent>
             <Table>
               <TableBody>
                 {team.riders.map((rider) => (
                   <TableRow key={`${team.name}-${rider.bib ?? rider.lastName}`}>
-                    <TableCell className="w-12 font-mono text-xs text-muted-foreground">
+                    <TableCell className="w-10 font-mono text-xs text-muted-foreground">
                       {rider.bib ?? "–"}
+                    </TableCell>
+                    <TableCell className="w-10">
+                      {rider.photoUrl ? (
+                        // biome-ignore lint/performance/noImgElement: external ASO CDN photo
+                        <img
+                          src={rider.photoUrl}
+                          alt=""
+                          loading="lazy"
+                          className="size-8 rounded-full bg-muted object-cover"
+                        />
+                      ) : (
+                        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+                          {(rider.firstName[0] ?? "") +
+                            (rider.lastName[0] ?? "")}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="font-medium">
                       {rider.firstName} {rider.lastName}
@@ -194,9 +244,33 @@ function StandingsTab({ detail }: { detail: ProRaceDetail }) {
                 <TableCell className="font-mono text-xs">
                   {row.rank ?? "–"}
                 </TableCell>
-                <TableCell className="font-medium">{row.rider}</TableCell>
+                <TableCell className="font-medium">
+                  <span className="flex items-center gap-2">
+                    {row.riderPhotoUrl && (
+                      // biome-ignore lint/performance/noImgElement: external ASO CDN photo
+                      <img
+                        src={row.riderPhotoUrl}
+                        alt=""
+                        loading="lazy"
+                        className="size-7 shrink-0 rounded-full bg-muted object-cover"
+                      />
+                    )}
+                    <span className="truncate">{row.rider}</span>
+                  </span>
+                </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {row.team ?? ""}
+                  <span className="flex items-center gap-2">
+                    {row.teamLogoUrl && (
+                      // biome-ignore lint/performance/noImgElement: external ASO CDN logo
+                      <img
+                        src={row.teamLogoUrl}
+                        alt=""
+                        loading="lazy"
+                        className="size-5 shrink-0 object-contain"
+                      />
+                    )}
+                    <span className="truncate">{row.team ?? ""}</span>
+                  </span>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {row.nation ?? ""}

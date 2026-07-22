@@ -9,6 +9,8 @@ export type MapDot = {
   color: string;
   /** CSS stroke color; defaults to white. */
   stroke?: string;
+  /** Circle radius in px; defaults to 6. Larger dots also draw on top. */
+  radius?: number;
   /** Popup title shown on hover/tap (e.g. a rider's name). */
   title?: string;
   subtitle?: string;

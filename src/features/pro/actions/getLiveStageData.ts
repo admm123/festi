@@ -13,6 +13,7 @@ import {
   mapAsoRanking,
   mapTelemetry,
   mapTissotRanking,
+  pickTelemetryFrame,
   type RiderIdentity,
 } from "../lib/live";
 import { getProRace, type ProRaceConfig } from "../lib/races";
@@ -23,6 +24,7 @@ const NOT_LIVE: ProLiveStageData = {
   updatedAt: null,
   riders: [],
   info: null,
+  jerseyHolders: [],
   ranking: [],
   rankingSource: null,
 };
@@ -103,7 +105,10 @@ export async function getLiveStageData(
 
   let telemetry: AsoTelemetry | null;
   try {
-    telemetry = await createLiveAsoClient(race.asoRace, year).getTelemetry();
+    // The bind is really an array of per-stage frames; unwrap the one for this
+    // stage. Anything else (dead upstream, another stage live) means not live.
+    const raw = await createLiveAsoClient(race.asoRace, year).getTelemetry();
+    telemetry = pickTelemetryFrame(raw, stageNumber);
   } catch {
     // A dead upstream degrades to "no live data" rather than an error.
     return NOT_LIVE;
@@ -111,7 +116,14 @@ export async function getLiveStageData(
   if (!telemetry) return NOT_LIVE;
 
   const index = await fetchRiderIndex(race, year);
-  const { riders, info, updatedAt } = mapTelemetry(telemetry, index);
+  const { riders, info, jerseyHolders, updatedAt } = mapTelemetry(
+    telemetry,
+    index,
+  );
+  // A matched frame with no GPS-tracked riders isn't meaningfully live: show
+  // the regular route view instead of a "Live" badge with an empty map.
+  if (riders.length === 0) return NOT_LIVE;
+
   const { ranking, source } = await fetchLiveRanking(
     race,
     year,
@@ -124,6 +136,7 @@ export async function getLiveStageData(
     updatedAt,
     riders,
     info,
+    jerseyHolders,
     ranking,
     rankingSource: source,
   };

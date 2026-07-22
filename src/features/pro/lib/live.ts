@@ -11,15 +11,24 @@ import {
 import type { TissotRanking } from "procycling-live/tissot";
 import type {
   ProJersey,
+  ProJerseyHolder,
   ProLiveInfo,
   ProLiveRider,
   ProStandingRow,
 } from "../types";
+import { riderPhotoUrl, teamImages } from "./images";
 
 /** ASO's YGPW array order: [Yellow, Green, Polka, White]. */
 const YGPW_ORDER: ProJersey[] = ["yellow", "green", "polka", "white"];
 
-export type RiderIdentity = { name: string; team: string | null };
+export type RiderIdentity = {
+  name: string;
+  team: string | null;
+  /** Team accent color (hex), for coloring the live map dot. */
+  teamColor: string | null;
+  /** Rider head-shot URL, when available. */
+  photoUrl: string | null;
+};
 
 /**
  * Joins the ASO startlist and teams into a bib -> identity lookup, used to
@@ -40,9 +49,36 @@ export function buildRiderIndex(
     index.set(competitor.bib, {
       name: name || `Bib ${competitor.bib}`,
       team: team?.name ?? null,
+      teamColor: teamImages(team).color,
+      photoUrl: riderPhotoUrl(competitor),
     });
   }
   return index;
+}
+
+/**
+ * The `telemetryCompetitor` bind is an array of per-stage frames (each with its
+ * own `Riders`, `YGPW` and `StageIndex`), not the single object the ASO type
+ * suggests. Pick the frame for the requested stage so a live stage's telemetry
+ * never leaks onto another stage's page; returns null when no frame matches.
+ */
+export function pickTelemetryFrame(
+  raw: unknown,
+  stageNumber: number,
+): AsoTelemetry | null {
+  const frames = (
+    Array.isArray(raw) ? raw : raw ? [raw] : []
+  ) as AsoTelemetry[];
+  if (frames.length === 0) return null;
+  const match = frames.find(
+    (frame) => asNumber((frame as AsoRecordMeta).StageIndex) === stageNumber,
+  );
+  // A single frame without a StageIndex is still usable for the live stage.
+  if (!match && frames.length === 1) {
+    const only = frames[0] as AsoRecordMeta;
+    if (only.StageIndex === undefined) return frames[0];
+  }
+  return match ?? null;
 }
 
 /**
@@ -56,12 +92,18 @@ export function mapTelemetry(
 ): {
   riders: ProLiveRider[];
   info: ProLiveInfo | null;
+  jerseyHolders: ProJerseyHolder[];
   updatedAt: number | null;
 } {
   const jerseys = new Map<number, ProJersey>();
+  const jerseyHolders: ProJerseyHolder[] = [];
   (telemetry.YGPW ?? []).forEach((bib, position) => {
     const jersey = YGPW_ORDER[position];
-    if (typeof bib === "number" && jersey) jerseys.set(bib, jersey);
+    if (typeof bib === "number" && jersey) {
+      jerseys.set(bib, jersey);
+      const identity = index.get(bib);
+      if (identity) jerseyHolders.push({ jersey, rider: identity.name });
+    }
   });
 
   const riders: ProLiveRider[] = [];
@@ -81,6 +123,7 @@ export function mapTelemetry(
       name: identity?.name ?? null,
       team: identity?.team ?? null,
       jersey: jerseys.get(rider.Bib) ?? null,
+      teamColor: identity?.teamColor ?? null,
       kph: typeof rider.kph === "number" ? Math.round(rider.kph) : null,
       kmToFinish:
         typeof rider.kmToFinish === "number"
@@ -123,6 +166,7 @@ export function mapTelemetry(
   return {
     riders,
     info,
+    jerseyHolders,
     updatedAt:
       typeof telemetry._updatedAt === "number" ? telemetry._updatedAt : null,
   };
@@ -142,6 +186,8 @@ export function mapTissotRanking(ranking: TissotRanking): ProStandingRow[] {
     nation: row.rider?.nation ?? null,
     time: typeof row.value === "string" ? row.value : null,
     gap: typeof row.gap === "string" ? row.gap : null,
+    teamLogoUrl: null,
+    riderPhotoUrl: null,
   }));
 }
 
@@ -210,6 +256,8 @@ export function mapAsoRanking(
       nation: asString(row.nationality) ?? asString(row.nation),
       time: asString(row.time) ?? asString(row.Time),
       gap: asString(row.gap) ?? asString(row.Gap),
+      teamLogoUrl: null,
+      riderPhotoUrl: identity?.photoUrl ?? null,
     };
   });
 }

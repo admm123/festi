@@ -97,6 +97,28 @@ function LiveInfoStrip({ data }: { data: ProLiveStageData }) {
   );
 }
 
+function JerseyHolders({ data }: { data: ProLiveStageData }) {
+  if (data.jerseyHolders.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {data.jerseyHolders.map((holder) => (
+        <Badge
+          key={holder.jersey}
+          variant="outline"
+          className="gap-1.5"
+          title={JERSEY_LABELS[holder.jersey]}
+        >
+          <span
+            className="size-2.5 rounded-full border border-black/20"
+            style={{ backgroundColor: JERSEY_COLORS[holder.jersey] }}
+          />
+          {holder.rider}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 function JerseyLegend() {
   const entries = [
     ...Object.entries(JERSEY_LABELS).map(([jersey, label]) => ({
@@ -149,7 +171,20 @@ function LiveRankingCard({ data }: { data: ProLiveStageData }) {
                 <TableCell className="font-mono text-xs">
                   {row.rank ?? "–"}
                 </TableCell>
-                <TableCell className="font-medium">{row.rider}</TableCell>
+                <TableCell className="font-medium">
+                  <span className="flex items-center gap-2">
+                    {row.riderPhotoUrl && (
+                      // biome-ignore lint/performance/noImgElement: external ASO CDN photo
+                      <img
+                        src={row.riderPhotoUrl}
+                        alt=""
+                        loading="lazy"
+                        className="size-7 shrink-0 rounded-full bg-muted object-cover"
+                      />
+                    )}
+                    <span className="truncate">{row.rider}</span>
+                  </span>
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.team ?? ""}
                 </TableCell>
@@ -236,6 +271,8 @@ export function LiveStagePanel({
   return (
     <div className="space-y-4">
       {live && data && <LiveInfoStrip data={data} />}
+
+      {live && data && <JerseyHolders data={data} />}
 
       {route && (
         <Card className="overflow-hidden">

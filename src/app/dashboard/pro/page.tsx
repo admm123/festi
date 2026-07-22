@@ -76,6 +76,25 @@ export default async function ProRacingPage() {
                     {race.stageCount === 1 ? "stage" : "stages"}
                   </p>
                 )}
+                {race.teamLogos.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {race.teamLogos.slice(0, 10).map((logo, index) => (
+                      // biome-ignore lint/performance/noImgElement: external ASO CDN logo
+                      <img
+                        key={`${race.key}-team-${index}`}
+                        src={logo}
+                        alt=""
+                        loading="lazy"
+                        className="size-6 object-contain"
+                      />
+                    ))}
+                    {race.teamLogos.length > 10 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{race.teamLogos.length - 10}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="flex items-center gap-1 pt-1 text-xs font-medium text-foreground/70 group-hover:text-foreground">
                   View race
                   <ChevronRightIcon className="size-3.5" />
