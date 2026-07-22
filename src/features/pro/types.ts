@@ -13,6 +13,8 @@ export type ProRaceSummary = {
   /** ISO date of the last stage, when known. */
   endDate: string | null;
   stageCount: number | null;
+  /** Team logo URLs of participating teams, for the hub card. Empty when unknown. */
+  teamLogos: string[];
 };
 
 /** One stage in a race's program. */
@@ -33,12 +35,20 @@ export type ProStartlistRider = {
   firstName: string;
   lastName: string;
   nationality: string | null;
+  /** Head-shot photo URL from ASO, when available. */
+  photoUrl: string | null;
 };
 
 export type ProStartlistTeam = {
   name: string;
   code: string | null;
   riders: ProStartlistRider[];
+  /** Team logo URL from ASO, when available. */
+  logoUrl: string | null;
+  /** Team jersey/kit image URL from ASO, when available. */
+  jerseyUrl: string | null;
+  /** Team accent color (hex), when available. */
+  color: string | null;
 };
 
 export type ProStandingRow = {
@@ -50,6 +60,10 @@ export type ProStandingRow = {
   time: string | null;
   /** Gap to the leader, e.g. "+0:42". */
   gap: string | null;
+  /** Team logo URL, matched from the ASO startlist. Null when unmatched. */
+  teamLogoUrl: string | null;
+  /** Rider head-shot URL, matched from the ASO startlist. Null when unmatched. */
+  riderPhotoUrl: string | null;
 };
 
 /** Everything the race detail page renders. */
@@ -104,6 +118,8 @@ export type ProLiveRider = {
   team: string | null;
   /** Jersey worn by this rider, when they lead a classification. */
   jersey: ProJersey | null;
+  /** Team accent color (hex) for the map dot, when known. */
+  teamColor: string | null;
   /** Instantaneous speed (km/h). */
   kph: number | null;
   kmToFinish: number | null;
@@ -125,6 +141,12 @@ export type ProLiveInfo = {
   gradientPct: number | null;
 };
 
+/** The rider currently leading one of the four ASO classifications. */
+export type ProJerseyHolder = {
+  jersey: ProJersey;
+  rider: string;
+};
+
 /** Payload the live stage panel polls for. */
 export type ProLiveStageData = {
   /** False when the upstream reports no live racing (telemetry is 204/null). */
@@ -133,6 +155,8 @@ export type ProLiveStageData = {
   updatedAt: number | null;
   riders: ProLiveRider[];
   info: ProLiveInfo | null;
+  /** Current YGPW jersey leaders, in yellow/green/polka/white order. */
+  jerseyHolders: ProJerseyHolder[];
   /** Current live classification, empty when none is published. */
   ranking: ProStandingRow[];
   rankingSource: "tissot" | "aso" | null;

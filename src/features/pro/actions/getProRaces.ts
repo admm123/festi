@@ -3,6 +3,7 @@
 import { getCurrentUser } from "@/features/auth/guards";
 import { createAsoClient } from "../lib/clients";
 import { toIsoDate } from "../lib/format";
+import { teamImages } from "../lib/images";
 import { PRO_RACES, type ProRaceConfig } from "../lib/races";
 import type { ProRaceStatus, ProRaceSummary } from "../types";
 
@@ -26,13 +27,20 @@ async function summarizeRace(
 ): Promise<ProRaceSummary> {
   if (!race.asoRace) throw new Error("No ASO source configured.");
   const aso = createAsoClient(race.asoRace, year);
-  const stages = await aso.getStages();
+  // Teams fail soft: a race without a published startlist still gets a card.
+  const [stages, teams] = await Promise.all([
+    aso.getStages(),
+    aso.getTeams().catch(() => []),
+  ]);
   const dates = stages
     .map((stage) => toIsoDate(stage.date))
     .filter((date): date is string => date !== null)
     .sort();
   const startDate = dates[0] ?? null;
   const endDate = dates[dates.length - 1] ?? null;
+  const teamLogos = teams
+    .map((team) => teamImages(team).logoUrl)
+    .filter((url): url is string => url !== null);
   return {
     key: race.key,
     name: race.name,
@@ -41,6 +49,7 @@ async function summarizeRace(
     startDate,
     endDate,
     stageCount: stages.length > 0 ? stages.length : null,
+    teamLogos,
   };
 }
 
@@ -71,6 +80,7 @@ export async function getProRaces(): Promise<ProRaceSummary[]> {
       startDate: null,
       endDate: null,
       stageCount: null,
+      teamLogos: [],
     };
   });
 }

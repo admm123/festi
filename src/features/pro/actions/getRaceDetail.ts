@@ -5,6 +5,15 @@ import { TissotClient } from "procycling-live/tissot";
 import { getCurrentUser } from "@/features/auth/guards";
 import { createAsoClient, createTissotClient } from "../lib/clients";
 import { toIsoDate } from "../lib/format";
+import {
+  buildRiderPhotoIndex,
+  buildTeamImageIndex,
+  lookupRiderPhoto,
+  lookupTeamImages,
+  type ProTeamImages,
+  riderPhotoUrl,
+  teamImages,
+} from "../lib/images";
 import { getProRace, type ProRaceConfig } from "../lib/races";
 import type {
   ProRaceDetail,
@@ -57,7 +66,15 @@ async function fetchStartlist(
       const teamName = team?.name ?? "Unknown team";
       let group = byTeam.get(teamName);
       if (!group) {
-        group = { name: teamName, code: team?.code ?? null, riders: [] };
+        const images = teamImages(team);
+        group = {
+          name: teamName,
+          code: team?.code ?? null,
+          riders: [],
+          logoUrl: images.logoUrl,
+          jerseyUrl: images.jerseyUrl,
+          color: images.color,
+        };
         byTeam.set(teamName, group);
       }
       group.riders.push({
@@ -65,6 +82,7 @@ async function fetchStartlist(
         firstName: competitor.firstname ?? "",
         lastName: competitor.lastname ?? "",
         nationality: competitor.nationality?.toUpperCase() ?? null,
+        photoUrl: riderPhotoUrl(competitor),
       });
     }
 
@@ -83,6 +101,25 @@ async function fetchStandings(
 ): Promise<ProStandingRow[]> {
   if (!race.tissotCode) return [];
   try {
+    // Team logos and rider photos come from ASO; join them onto the Tissot
+    // standings by team code/name and rider name. A failed ASO fetch just
+    // leaves the imagery empty.
+    let teamImageIndex: Map<string, ProTeamImages> = new Map();
+    let riderPhotoIndex = new Map<string, string>();
+    if (race.asoRace) {
+      try {
+        const aso = createAsoClient(race.asoRace, year);
+        const [teams, competitors] = await Promise.all([
+          aso.getTeams(),
+          aso.getCompetitors(),
+        ]);
+        teamImageIndex = buildTeamImageIndex(teams);
+        riderPhotoIndex = buildRiderPhotoIndex(competitors);
+      } catch {
+        // Standings still render without logos/photos.
+      }
+    }
+
     const tissot = createTissotClient();
     const competitionId = TissotClient.competitionId(race.tissotCode, year);
     const schedule = await tissot.getSchedule(competitionId);
@@ -115,6 +152,16 @@ async function fetchStandings(
           nation: row.rider?.nation ?? null,
           time: row.value ?? null,
           gap: row.gap ?? null,
+          teamLogoUrl:
+            lookupTeamImages(
+              teamImageIndex,
+              row.rider?.teamCode ?? null,
+              row.rider?.teamName ?? null,
+            )?.logoUrl ?? null,
+          riderPhotoUrl: lookupRiderPhoto(
+            riderPhotoIndex,
+            row.rider?.name ?? null,
+          ),
         }));
       }
     }

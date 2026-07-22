@@ -332,8 +332,12 @@ export function RideMap({
           id: DOTS_LAYER_ID,
           type: "circle",
           source: DOTS_SOURCE_ID,
+          layout: {
+            // Draw larger dots (e.g. jersey wearers) on top of the peloton.
+            "circle-sort-key": ["coalesce", ["get", "radius"], 6],
+          },
           paint: {
-            "circle-radius": 6,
+            "circle-radius": ["coalesce", ["get", "radius"], 6],
             "circle-color": ["get", "color"],
             "circle-stroke-color": ["coalesce", ["get", "stroke"], "#ffffff"],
             "circle-stroke-width": 2,
@@ -618,6 +622,7 @@ export function RideMap({
           properties: {
             color: dot.color,
             stroke: dot.stroke ?? "#ffffff",
+            radius: dot.radius ?? 6,
             title: dot.title ?? "",
             subtitle: dot.subtitle ?? "",
           },
