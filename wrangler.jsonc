@@ -1,9 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "festi",
-  "main": ".open-next/worker.js",
+  // Wraps .open-next/worker.js to add the cron `scheduled` handler.
+  "main": "custom-worker.ts",
   "compatibility_date": "2026-07-14",
   "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    // Telemetry capture for live stages (see custom-worker.ts): every minute
+    // during typical racing hours (08–17 UTC ≈ 10:00–19:00 CEST). Outside a
+    // live stage the endpoint is a cheap no-op.
+    "crons": ["* 8-17 * * *"]
+  },
   "vars": {
     // Must be an address on your Resend-verified domain, otherwise Resend
     // only delivers to your own account email.
