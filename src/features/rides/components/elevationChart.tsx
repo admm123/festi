@@ -3,28 +3,161 @@
 import {
   Area,
   AreaChart,
+  ReferenceDot,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { ElevationPoint } from "../types";
+import type { ElevationMarker, ElevationPoint } from "../types";
 
 type ElevationChartProps = {
   data: ElevationPoint[];
   className?: string;
   /** Called with the hovered point (or null on leave) to highlight the map. */
   onHover?: (point: ElevationPoint | null) => void;
+  /** Flagged points of interest (climbs, sprints, start/finish) drawn above the profile. */
+  markers?: ElevationMarker[];
 };
+
+/** Flag colors per marker kind; KOM red matches the profile accent. */
+const MARKER_COLORS: Record<ElevationMarker["kind"], string> = {
+  start: "#3b82f6",
+  finish: "#171717",
+  kom: "#ef4444",
+  sprint: "#16a34a",
+};
+
+/** Vertical layout of the flag rows above the plot area, in px. */
+const FLAG_ROW_STEP = 17;
+const FLAG_ZONE_HEIGHT = 46;
+const FLAG_HEIGHT = 11;
+
+/** Longer labels are cut so two stagger rows stay readable. */
+function truncateLabel(label: string): string {
+  return label.length > 24 ? `${label.slice(0, 23)}…` : label;
+}
+
+/** The flag glyph: category/sprint badge, start pennant, or checkered finish. */
+function FlagGlyph({ marker }: { marker: ElevationMarker }) {
+  const color = MARKER_COLORS[marker.kind];
+  if (marker.kind === "finish") {
+    // 3x2 checkered flag.
+    const cell = 4;
+    return (
+      <g>
+        <rect
+          x={0}
+          y={0}
+          width={cell * 3}
+          height={cell * 2}
+          fill="#ffffff"
+          stroke={color}
+          strokeWidth={0.75}
+        />
+        {[0, 2].map((col) => (
+          <rect
+            key={col}
+            x={col * cell}
+            y={0}
+            width={cell}
+            height={cell}
+            fill={color}
+          />
+        ))}
+        <rect x={cell} y={cell} width={cell} height={cell} fill={color} />
+      </g>
+    );
+  }
+  if (marker.badge) {
+    return (
+      <g>
+        <rect
+          x={0}
+          y={0}
+          width={13}
+          height={FLAG_HEIGHT}
+          rx={1.5}
+          fill={color}
+        />
+        <text
+          x={6.5}
+          y={FLAG_HEIGHT / 2}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={8}
+          fontWeight={700}
+          fill="#ffffff"
+        >
+          {marker.badge}
+        </text>
+      </g>
+    );
+  }
+  // Plain pennant (start).
+  return (
+    <path d={`M0 0 L11 ${FLAG_HEIGHT / 2} L0 ${FLAG_HEIGHT} Z`} fill={color} />
+  );
+}
+
+/**
+ * Renders one marker's flag row above the plot: a pole continuing the
+ * (in-plot) reference line up through the chart margin, the flag glyph, and
+ * the label text — mirrored to the left near the right edge so nothing
+ * overflows the chart.
+ */
+function renderMarkerFlag(marker: ElevationMarker, align: "left" | "right") {
+  return (props: unknown) => {
+    const viewBox = (props as { viewBox?: { x?: number; y?: number } }).viewBox;
+    const cx = viewBox?.x ?? 0;
+    const plotTop = viewBox?.y ?? FLAG_ZONE_HEIGHT;
+    const flagTop =
+      plotTop - FLAG_ZONE_HEIGHT + 2 + marker.level * FLAG_ROW_STEP;
+    return (
+      <g transform={`translate(${cx},0)`}>
+        {marker.title && <title>{marker.title}</title>}
+        <line
+          x1={0}
+          x2={0}
+          y1={flagTop + FLAG_HEIGHT}
+          y2={plotTop}
+          stroke="currentColor"
+          strokeOpacity={0.25}
+          strokeWidth={1}
+        />
+        <g transform={`translate(${align === "left" ? 0 : -13},${flagTop})`}>
+          <FlagGlyph marker={marker} />
+        </g>
+        {marker.label && (
+          <text
+            x={align === "left" ? 16 : -16}
+            y={flagTop + FLAG_HEIGHT / 2}
+            textAnchor={align === "left" ? "start" : "end"}
+            dominantBaseline="central"
+            fontSize={9.5}
+            fill="currentColor"
+            fillOpacity={0.8}
+          >
+            {truncateLabel(marker.label)}
+          </text>
+        )}
+      </g>
+    );
+  };
+}
 
 /**
  * Elevation profile as a filled area chart (distance in km vs. elevation in m).
- * Renders nothing when there is no usable profile.
+ * With `markers`, a flag zone (categorized climbs, sprints, start/finish — à
+ * la official race profiles) extends the chart upward; the profile itself is
+ * unchanged. Renders nothing when there is no usable profile.
  */
 export function ElevationChart({
   data,
   className,
   onHover,
+  markers,
 }: ElevationChartProps) {
   if (data.length < 2) {
     return (
@@ -43,6 +176,8 @@ export function ElevationChart({
   const min = Math.min(...elevations);
   const max = Math.max(...elevations);
   const pad = Math.max(10, Math.round((max - min) * 0.1));
+  const maxDistance = data[data.length - 1].distance;
+  const hasMarkers = (markers?.length ?? 0) > 0;
 
   return (
     <div className={className}>
@@ -52,11 +187,17 @@ export function ElevationChart({
           {min} m – {max} m
         </span>
       </div>
-      <div className="h-32 w-full">
+      <div className={hasMarkers ? "h-44 w-full" : "h-32 w-full"}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 4, right: 8, bottom: 0, left: -8 }}
+            margin={{
+              // The flag zone lives in the top margin, above the plot area.
+              top: hasMarkers ? FLAG_ZONE_HEIGHT : 4,
+              right: 8,
+              bottom: 0,
+              left: -8,
+            }}
             onMouseMove={(state) => {
               if (!onHover) return;
               const s = state as {
@@ -132,6 +273,31 @@ export function ElevationChart({
               fill="url(#elevationFill)"
               isAnimationActive={false}
             />
+            {markers?.map((marker) => (
+              <ReferenceLine
+                key={`flag-${marker.kind}-${marker.km}`}
+                x={marker.km}
+                stroke="currentColor"
+                strokeOpacity={0.2}
+                strokeDasharray="2 3"
+                label={renderMarkerFlag(
+                  marker,
+                  // Mirror labels near the right edge so they stay inside.
+                  marker.km > maxDistance * 0.82 ? "right" : "left",
+                )}
+              />
+            ))}
+            {markers?.map((marker) => (
+              <ReferenceDot
+                key={`dot-${marker.kind}-${marker.km}`}
+                x={marker.km}
+                y={marker.elevation}
+                r={3.5}
+                fill={MARKER_COLORS[marker.kind]}
+                stroke="#ffffff"
+                strokeWidth={1.5}
+              />
+            ))}
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { poisToDots, ridersToDots } from "../lib/riderDots";
-import type { ProReplayFrame, ProStagePoi, ProStageRoute } from "../types";
+import type {
+  ProNewsArticle,
+  ProReplayFrame,
+  ProStagePoi,
+  ProStageRoute,
+} from "../types";
+import { StageNewsFeed } from "./stageNewsFeed";
 import { StageRoutePanel } from "./stageRoutePanel";
 
 /** Playback advances one captured frame per tick. */
@@ -20,13 +26,25 @@ type ReplayPanelProps = {
   frames: ProReplayFrame[];
   /** KOM climbs and sprints drawn on the map under the rider dots. */
   pois: ProStagePoi[];
+  /** Roadbook start/finish city names for the profile flags. */
+  departure?: string | null;
+  arrival?: string | null;
+  /** Archived commentary feed shown next to the map. */
+  news?: ProNewsArticle[];
 };
 
 /**
  * Scrubbable replay of a past stage from captured telemetry frames: a time
  * slider plus play/pause, animating the rider dots along the stage route.
  */
-export function ReplayPanel({ route, frames, pois }: ReplayPanelProps) {
+export function ReplayPanel({
+  route,
+  frames,
+  pois,
+  departure,
+  arrival,
+  news,
+}: ReplayPanelProps) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -56,16 +74,28 @@ export function ReplayPanel({ route, frames, pois }: ReplayPanelProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <StageRoutePanel
-            routeGeometry={route.routeGeometry}
-            waypoints={route.waypoints}
-            elevationProfile={route.elevationProfile}
-            riderDots={dots}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <StageRoutePanel
+              routeGeometry={route.routeGeometry}
+              waypoints={route.waypoints}
+              elevationProfile={route.elevationProfile}
+              riderDots={dots}
+              pois={pois}
+              departure={departure}
+              arrival={arrival}
+            />
+          </CardContent>
+        </Card>
+        {/* Height-capped to the map column on large screens. */}
+        <div className="relative">
+          <StageNewsFeed
+            articles={news ?? []}
+            className="lg:absolute lg:inset-0"
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div className="flex items-center gap-3">
         <Badge variant="secondary" className="shrink-0">

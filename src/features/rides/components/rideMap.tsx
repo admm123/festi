@@ -355,19 +355,34 @@ export function RideMap({
           const props = feature.properties as {
             title?: string;
             subtitle?: string;
+            imageUrl?: string;
           };
           if (!props?.title) return;
           const content = document.createElement("div");
-          content.className = "text-xs text-neutral-900";
+          content.className =
+            "flex items-center gap-2 text-xs text-neutral-900";
+          if (props.imageUrl) {
+            // Photo (e.g. a rider head-shot) next to the text block.
+            const image = document.createElement("img");
+            image.src = props.imageUrl;
+            image.alt = "";
+            image.className =
+              "size-9 shrink-0 rounded-full bg-neutral-100 object-cover";
+            // A dead CDN link should not leave a broken-image icon behind.
+            image.onerror = () => image.remove();
+            content.appendChild(image);
+          }
+          const text = document.createElement("div");
+          content.appendChild(text);
           const title = document.createElement("div");
           title.className = "font-semibold";
           title.textContent = props.title;
-          content.appendChild(title);
+          text.appendChild(title);
           if (props.subtitle) {
             const subtitle = document.createElement("div");
             subtitle.className = "text-neutral-500";
             subtitle.textContent = props.subtitle;
-            content.appendChild(subtitle);
+            text.appendChild(subtitle);
           }
           dotsPopup.setLngLat(event.lngLat).setDOMContent(content).addTo(map);
         };
@@ -625,6 +640,7 @@ export function RideMap({
             radius: dot.radius ?? 6,
             title: dot.title ?? "",
             subtitle: dot.subtitle ?? "",
+            imageUrl: dot.imageUrl ?? "",
           },
           geometry: { type: "Point", coordinates: [dot.lng, dot.lat] },
         })),

@@ -123,6 +123,8 @@ export type ProStageDetail = {
   route: ProStageRoute | null;
   /** KOM climbs and sprints along the route; empty when none are published. */
   pois: ProStagePoi[];
+  /** Race-center commentary for this stage, newest-first. */
+  news: ProNewsArticle[];
 };
 
 /** Jersey colors, in ASO's YGPW order. */
@@ -140,6 +142,11 @@ export type ProLiveRider = {
   jersey: ProJersey | null;
   /** Team accent color (hex) for the map dot, when known. */
   teamColor: string | null;
+  /**
+   * Rider head-shot for the map popup. Optional because telemetry frames
+   * captured before the field existed are replayed from the database as-is.
+   */
+  photoUrl?: string | null;
   /** Instantaneous speed (km/h). */
   kph: number | null;
   kmToFinish: number | null;
@@ -192,6 +199,8 @@ export type ProLiveStageData = {
   /** Current live classification, empty when none is published. */
   ranking: ProStandingRow[];
   rankingSource: "tissot" | "aso" | null;
+  /** Live race-center commentary feed, newest-first. */
+  news: ProNewsArticle[];
 };
 
 /** One stage line on the race overview map. */

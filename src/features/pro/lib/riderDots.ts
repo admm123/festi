@@ -77,6 +77,7 @@ export function ridersToDots(riders: ProLiveRider[]): MapDot[] {
       radius: rider.jersey ? 10 : 6,
       title: rider.name ?? `Bib ${rider.bib}`,
       subtitle: details || undefined,
+      imageUrl: rider.photoUrl ?? undefined,
     };
   });
 }

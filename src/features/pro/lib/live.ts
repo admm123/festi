@@ -100,6 +100,7 @@ export function mapTelemetry(
       team: identity?.team ?? null,
       jersey: jerseys.get(rider.Bib) ?? null,
       teamColor: identity?.teamColor ?? null,
+      photoUrl: identity?.photoUrl ?? null,
       kph: typeof rider.kph === "number" ? Math.round(rider.kph) : null,
       kmToFinish:
         typeof rider.kmToFinish === "number"

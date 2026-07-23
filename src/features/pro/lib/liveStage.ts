@@ -1,29 +1,29 @@
-"use server";
+import "server-only";
 
 import type { AsoCompetitor, AsoTeam, AsoTelemetry } from "procycling-live/aso";
 import { TissotClient } from "procycling-live/tissot";
-import { getCurrentUser } from "@/features/auth/guards";
-import { nearestCheckpointWeather } from "../lib/checkpoints";
+import type {
+  ProLiveStageData,
+  ProLiveWeather,
+  ProStandingRow,
+} from "../types";
+import { nearestCheckpointWeather } from "./checkpoints";
 import {
   createAsoClient,
   createLiveAsoClient,
   createLiveTissotClient,
-} from "../lib/clients";
+} from "./clients";
 import {
   buildRiderIndex,
   mapAsoGcRows,
   mapTelemetry,
   mapTissotRanking,
   type RiderIdentity,
-} from "../lib/live";
-import { getProRace, type ProRaceConfig } from "../lib/races";
-import type {
-  ProLiveStageData,
-  ProLiveWeather,
-  ProStandingRow,
-} from "../types";
+} from "./live";
+import { fetchStageNews } from "./news";
+import type { ProRaceConfig } from "./races";
 
-const NOT_LIVE: ProLiveStageData = {
+export const NOT_LIVE: ProLiveStageData = {
   live: false,
   updatedAt: null,
   riders: [],
@@ -32,9 +32,10 @@ const NOT_LIVE: ProLiveStageData = {
   jerseyHolders: [],
   ranking: [],
   rankingSource: null,
+  news: [],
 };
 
-type StartlistData = {
+export type StartlistData = {
   competitors: AsoCompetitor[];
   teams: AsoTeam[];
   index: Map<number, RiderIdentity>;
@@ -51,7 +52,7 @@ const EMPTY_STARTLIST: StartlistData = {
  * teams don't change mid-stage, so only the telemetry/rankings themselves need
  * to bypass the cache.
  */
-async function fetchStartlist(
+export async function fetchStartlist(
   race: ProRaceConfig,
   year: number,
 ): Promise<StartlistData> {
@@ -140,23 +141,22 @@ async function fetchHeadWeather(
 }
 
 /**
- * One live snapshot for the stage page's polling panel: rider GPS positions
- * joined against the startlist, info-strip numbers, and the current live
- * classification. Returns `live: false` when ASO reports no live racing
- * (telemetry 204/null) — the normal state outside stage hours.
+ * One full live snapshot for a stage: rider GPS positions joined against the
+ * startlist, info-strip numbers, and the current live classification. Returns
+ * `live: false` when ASO reports no live racing (telemetry 204/null) — the
+ * normal state outside stage hours. Shared by the SSE route handler (initial
+ * snapshot + slow-lane refresh) so both paths serve the identical shape.
+ *
+ * Pass a pre-fetched `startlist` when calling repeatedly (the SSE stream keeps
+ * one for its whole lifetime) to skip the redundant lookup.
  */
-export async function getLiveStageData(
-  raceKey: string,
+export async function buildLiveStageData(
+  race: ProRaceConfig,
   year: number,
   stageNumber: number,
+  startlist?: StartlistData,
 ): Promise<ProLiveStageData> {
-  const session = await getCurrentUser();
-  if (!session) {
-    throw new Error("You must be signed in.");
-  }
-
-  const race = getProRace(raceKey);
-  if (!race?.asoRace) return NOT_LIVE;
+  if (!race.asoRace) return NOT_LIVE;
 
   let telemetry: AsoTelemetry | null;
   try {
@@ -172,22 +172,20 @@ export async function getLiveStageData(
   }
   if (!telemetry) return NOT_LIVE;
 
-  const startlist = await fetchStartlist(race, year);
+  const resolvedStartlist = startlist ?? (await fetchStartlist(race, year));
   const { riders, info, jerseyHolders, updatedAt } = mapTelemetry(
     telemetry,
-    startlist.index,
+    resolvedStartlist.index,
   );
   // A matched frame with no GPS-tracked riders isn't meaningfully live: show
   // the regular route view instead of a "Live" badge with an empty map.
   if (riders.length === 0) return NOT_LIVE;
 
-  const { ranking, source } = await fetchLiveRanking(
-    race,
-    year,
-    stageNumber,
-    startlist,
-  );
-  const weather = await fetchHeadWeather(race, year, stageNumber, riders);
+  const [{ ranking, source }, weather, news] = await Promise.all([
+    fetchLiveRanking(race, year, stageNumber, resolvedStartlist),
+    fetchHeadWeather(race, year, stageNumber, riders),
+    fetchStageNews(race, year, stageNumber),
+  ]);
 
   return {
     live: true,
@@ -198,5 +196,6 @@ export async function getLiveStageData(
     jerseyHolders,
     ranking,
     rankingSource: source,
+    news,
   };
 }

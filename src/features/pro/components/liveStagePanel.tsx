@@ -8,7 +8,7 @@ import {
   TimerIcon,
   WindIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getLiveStageData } from "../actions/getLiveStageData";
 import { formatGap } from "../lib/format";
 import {
   DEFAULT_RIDER_COLOR,
@@ -28,11 +27,14 @@ import {
   poisToDots,
   ridersToDots,
 } from "../lib/riderDots";
-import type { ProLiveStageData, ProStagePoi, ProStageRoute } from "../types";
+import type {
+  ProLiveStageData,
+  ProNewsArticle,
+  ProStagePoi,
+  ProStageRoute,
+} from "../types";
+import { StageNewsFeed } from "./stageNewsFeed";
 import { StageRoutePanel } from "./stageRoutePanel";
-
-/** Matches ASO's ~5s telemetry cadence without hammering the upstream. */
-const POLL_MS = 8000;
 
 type LiveStagePanelProps = {
   raceKey: string;
@@ -42,6 +44,11 @@ type LiveStagePanelProps = {
   route: ProStageRoute | null;
   /** KOM climbs and sprints drawn on the map under the rider dots. */
   pois: ProStagePoi[];
+  /** Roadbook start/finish city names for the profile flags. */
+  departure?: string | null;
+  arrival?: string | null;
+  /** Initial commentary feed; the live snapshot supersedes it mid-stage. */
+  news?: ProNewsArticle[];
 };
 
 function LiveBadge() {
@@ -221,8 +228,8 @@ function LiveRankingCard({ data }: { data: ProLiveStageData }) {
 }
 
 /**
- * Live coverage for a stage that may currently be racing: polls the live
- * server action while the tab is visible and layers rider GPS dots onto the
+ * Live coverage for a stage that may currently be racing: subscribes to the
+ * SSE stream while the tab is visible and layers rider GPS dots onto the
  * stage map. Outside live racing it renders the static route panel plus a
  * subtle hint, so the page looks like the regular stage page.
  */
@@ -232,50 +239,53 @@ export function LiveStagePanel({
   stageNumber,
   route,
   pois,
+  departure,
+  arrival,
+  news,
 }: LiveStagePanelProps) {
   const [data, setData] = useState<ProLiveStageData | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
+    let source: EventSource | null = null;
 
-    const tick = async () => {
-      // Pause polling while the tab is hidden; visibilitychange resumes it.
-      if (document.hidden || inFlight) {
-        schedule();
-        return;
-      }
-      inFlight = true;
-      try {
-        const next = await getLiveStageData(raceKey, year, stageNumber);
-        if (!cancelled) setData(next);
-      } catch {
-        // A failed poll keeps the previous snapshot; never crash the page.
-      } finally {
-        inFlight = false;
-      }
-      schedule();
+    const open = () => {
+      if (source) return;
+      // Every event is a complete snapshot, so reconnects (EventSource
+      // retries automatically) need no patch replay — the next event
+      // re-syncs the panel.
+      source = new EventSource(
+        `/api/pro/live/${encodeURIComponent(raceKey)}/${year}/${stageNumber}`,
+      );
+      source.addEventListener("snapshot", (event) => {
+        try {
+          setData(JSON.parse((event as MessageEvent<string>).data));
+        } catch {
+          // A malformed frame keeps the previous snapshot; never crash.
+        }
+      });
+      // Errors are left to EventSource's built-in retry; the last snapshot
+      // stays on screen meanwhile.
     };
 
-    const schedule = () => {
-      if (cancelled) return;
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(tick, POLL_MS);
+    const close = () => {
+      source?.close();
+      source = null;
     };
 
+    // Hold the connection only while the tab is visible — each open stream
+    // costs a running worker invocation.
     const onVisibilityChange = () => {
-      if (!document.hidden) {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        void tick();
+      if (document.hidden) {
+        close();
+      } else {
+        open();
       }
     };
 
-    void tick();
+    if (!document.hidden) open();
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
-      cancelled = true;
-      if (timerRef.current) clearTimeout(timerRef.current);
+      close();
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [raceKey, year, stageNumber]);
@@ -294,18 +304,32 @@ export function LiveStagePanel({
 
       {live && data && <JerseyHolders data={data} />}
 
-      {route && (
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <StageRoutePanel
-              routeGeometry={route.routeGeometry}
-              waypoints={route.waypoints}
-              elevationProfile={route.elevationProfile}
-              riderDots={dots}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {route && (
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <StageRoutePanel
+                routeGeometry={route.routeGeometry}
+                waypoints={route.waypoints}
+                elevationProfile={route.elevationProfile}
+                riderDots={dots}
+                pois={pois}
+                departure={departure}
+                arrival={arrival}
+              />
+            </CardContent>
+          </Card>
+        )}
+        {/* The absolute wrapper caps the feed at the map column's height on
+            large screens; on mobile it stacks below with its own scroll. */}
+        <div className="relative">
+          <StageNewsFeed
+            articles={data?.news?.length ? data.news : (news ?? [])}
+            live={live}
+            className="lg:absolute lg:inset-0"
+          />
+        </div>
+      </div>
 
       {live && dots && dots.length > 0 && <JerseyLegend />}
 

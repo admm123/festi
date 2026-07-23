@@ -14,6 +14,8 @@ export type MapDot = {
   /** Popup title shown on hover/tap (e.g. a rider's name). */
   title?: string;
   subtitle?: string;
+  /** Photo shown in the popup next to the title (e.g. a rider head-shot). */
+  imageUrl?: string;
 };
 
 export type RouteProfile = "trekking" | "fastbike" | "gravel";
@@ -63,6 +65,27 @@ export type ElevationPoint = {
   /** Position on the route, for highlighting on the map. */
   lat: number;
   lng: number;
+};
+
+/**
+ * A labeled point of interest pinned onto the elevation profile — a flag row
+ * above the chart plus a dot on the profile line (à la official race
+ * profiles: categorized climbs, sprints, start and finish).
+ */
+export type ElevationMarker = {
+  kind: "start" | "finish" | "kom" | "sprint";
+  /** Km from the start; must fall within the profile's distance domain. */
+  km: number;
+  /** Profile elevation (m) at `km`, anchoring the dot on the line. */
+  elevation: number;
+  /** Text next to the flag (place or climb name); null draws the flag alone. */
+  label: string | null;
+  /** Text inside the flag: KOM category ("H", "1".."4") or "S" for sprints. */
+  badge: string | null;
+  /** Native tooltip with the full details (name, km, climb length, gradient). */
+  title: string | null;
+  /** Vertical stagger row (0 = highest) keeping nearby labels apart. */
+  level: number;
 };
 
 export type RideCreator = {

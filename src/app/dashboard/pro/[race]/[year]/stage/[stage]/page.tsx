@@ -14,6 +14,7 @@ import { getStageDetail } from "@/features/pro/actions/getStageDetail";
 import { getStageReplay } from "@/features/pro/actions/getStageReplay";
 import { LiveStagePanel } from "@/features/pro/components/liveStagePanel";
 import { ReplayPanel } from "@/features/pro/components/replayPanel";
+import { StageNewsFeed } from "@/features/pro/components/stageNewsFeed";
 import { StageRoutePanel } from "@/features/pro/components/stageRoutePanel";
 import { formatStageType } from "@/features/pro/lib/format";
 import { poisToDots } from "@/features/pro/lib/riderDots";
@@ -133,23 +134,45 @@ export default async function ProStagePage({
           stageNumber={stageNumber}
           route={route}
           pois={detail.pois}
+          departure={stage.departure}
+          arrival={stage.arrival}
+          news={detail.news}
         />
       ) : replay !== null && replay.frames.length > 0 && route !== null ? (
-        <ReplayPanel route={route} frames={replay.frames} pois={detail.pois} />
+        <ReplayPanel
+          route={route}
+          frames={replay.frames}
+          pois={detail.pois}
+          departure={stage.departure}
+          arrival={stage.arrival}
+          news={detail.news}
+        />
       ) : (
         route !== null && (
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <StageRoutePanel
-                routeGeometry={route.routeGeometry}
-                waypoints={route.waypoints}
-                elevationProfile={route.elevationProfile}
-                riderDots={
-                  detail.pois.length > 0 ? poisToDots(detail.pois) : undefined
-                }
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <StageRoutePanel
+                  routeGeometry={route.routeGeometry}
+                  waypoints={route.waypoints}
+                  elevationProfile={route.elevationProfile}
+                  riderDots={
+                    detail.pois.length > 0 ? poisToDots(detail.pois) : undefined
+                  }
+                  pois={detail.pois}
+                  departure={stage.departure}
+                  arrival={stage.arrival}
+                />
+              </CardContent>
+            </Card>
+            {/* Height-capped to the map column on large screens. */}
+            <div className="relative">
+              <StageNewsFeed
+                articles={detail.news}
+                className="lg:absolute lg:inset-0"
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )
       )}
 

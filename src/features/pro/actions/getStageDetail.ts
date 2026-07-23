@@ -8,6 +8,7 @@ import {
   createCyclingStageClient,
   createTissotClient,
 } from "../lib/clients";
+import { fetchStageNews } from "../lib/news";
 import { getProRace, type ProRaceConfig } from "../lib/races";
 import { buildStageRoute } from "../lib/route";
 import { buildTissotRoute } from "../lib/tissotRoute";
@@ -57,8 +58,8 @@ async function fetchStageInfo(
 /**
  * Official route from Tissot: the per-stage KMZ supplies the map geometry and
  * the profile JSON the elevation. Returns null when the race has no timing
- * partner or the stage publishes no KMZ — the caller falls back to the
- * cyclingstage GPX.
+ * partner or the stage publishes no KMZ — used as the fallback when no
+ * cyclingstage GPX is published.
  */
 async function fetchTissotStageRoute(
   race: ProRaceConfig,
@@ -94,26 +95,31 @@ async function fetchStageRoute(
   year: number,
   stageNumber: number,
 ): Promise<ProStageRoute | null> {
-  // Prefer the official Tissot route; fall back to the cyclingstage GPX.
-  const tissotRoute = await fetchTissotStageRoute(race, year, stageNumber);
-  if (tissotRoute) return tissotRoute;
-
-  if (!race.cyclingstageSlug) return null;
-  try {
-    const cyclingstage = createCyclingStageClient();
-    if (race.oneDay) {
-      const route = await cyclingstage.fetchOneDay(race.cyclingstageSlug, year);
-      return route ? buildStageRoute(route, null) : null;
+  // Prefer the cyclingstage GPX — its geometry and elevation are noticeably
+  // more precise than the Tissot KMZ; Tissot is the fallback when no GPX is
+  // published (yet) for the stage.
+  if (race.cyclingstageSlug) {
+    try {
+      const cyclingstage = createCyclingStageClient();
+      if (race.oneDay) {
+        const route = await cyclingstage.fetchOneDay(
+          race.cyclingstageSlug,
+          year,
+        );
+        if (route) return buildStageRoute(route, null);
+      } else {
+        const result = await cyclingstage.fetchStage(
+          race.cyclingstageSlug,
+          year,
+          stageNumber,
+        );
+        if (result) return buildStageRoute(result.route, result.url);
+      }
+    } catch {
+      // Fall through to the Tissot route.
     }
-    const result = await cyclingstage.fetchStage(
-      race.cyclingstageSlug,
-      year,
-      stageNumber,
-    );
-    return result ? buildStageRoute(result.route, result.url) : null;
-  } catch {
-    return null;
   }
+  return fetchTissotStageRoute(race, year, stageNumber);
 }
 
 /**
@@ -139,7 +145,7 @@ async function fetchStagePois(
 
 /**
  * Stage detail: basic stage info from ASO, the route (map geometry + elevation
- * profile) — official Tissot KMZ/profile when available, cyclingstage GPX as
+ * profile) — cyclingstage GPX when available, official Tissot KMZ/profile as
  * fallback — and the course POIs (KOM/sprint) from the ASO checkpoints. The
  * route is null when no geometry is published for the stage. Returns null for
  * unknown race keys.
@@ -157,10 +163,11 @@ export async function getStageDetail(
   const race = getProRace(raceKey);
   if (!race) return null;
 
-  const [stage, route, pois] = await Promise.all([
+  const [stage, route, pois, news] = await Promise.all([
     fetchStageInfo(race, year, stageNumber),
     fetchStageRoute(race, year, stageNumber),
     fetchStagePois(race, year, stageNumber),
+    fetchStageNews(race, year, stageNumber),
   ]);
 
   return {
@@ -170,5 +177,6 @@ export async function getStageDetail(
     stage,
     route,
     pois,
+    news,
   };
 }

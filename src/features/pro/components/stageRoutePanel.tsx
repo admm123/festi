@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ElevationChart } from "@/features/rides/components/elevationChart";
 import { RoutePreview } from "@/features/rides/components/routePreview";
 import type { ElevationPoint, MapDot, Waypoint } from "@/features/rides/types";
+import { buildElevationMarkers } from "../lib/elevationMarkers";
+import type { ProStagePoi } from "../types";
 
 type StageRoutePanelProps = {
   routeGeometry: string;
@@ -11,20 +13,42 @@ type StageRoutePanelProps = {
   elevationProfile: ElevationPoint[];
   /** Rider positions (live or replayed) drawn on top of the route. */
   riderDots?: MapDot[];
+  /** KOM climbs and sprints, flagged on the elevation profile. */
+  pois?: ProStagePoi[];
+  /** Roadbook start/finish city names for the profile's outer flags. */
+  departure?: string | null;
+  arrival?: string | null;
 };
 
 /**
  * Stage map plus elevation profile, sharing hover state so pointing at the
  * profile highlights the matching spot on the map — same wiring as the
- * rides feature's RideRoutePanel.
+ * rides feature's RideRoutePanel. The profile carries the course flags
+ * (climbs, sprints, start/finish) when POIs are passed.
  */
 export function StageRoutePanel({
   routeGeometry,
   waypoints,
   elevationProfile,
   riderDots,
+  pois,
+  departure,
+  arrival,
 }: StageRoutePanelProps) {
   const [highlight, setHighlight] = useState<[number, number] | null>(null);
+
+  const markers = useMemo(
+    () =>
+      pois
+        ? buildElevationMarkers(
+            elevationProfile,
+            pois,
+            departure ?? null,
+            arrival ?? null,
+          )
+        : undefined,
+    [elevationProfile, pois, departure, arrival],
+  );
 
   return (
     <>
@@ -40,6 +64,7 @@ export function StageRoutePanel({
         <div className="border-t p-4">
           <ElevationChart
             data={elevationProfile}
+            markers={markers}
             onHover={(point) =>
               setHighlight(point ? [point.lng, point.lat] : null)
             }
