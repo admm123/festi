@@ -1,32 +1,32 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { cache } from "react";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /**
- * One pool and one client per Worker isolate: `globalThis` survives across
- * requests, so warm connections are reused. `maxLifetimeSeconds`,
- * `idleTimeoutMillis` and `maxUses` bound how long, so a socket the runtime
- * reaped is discarded rather than reused.
+ * On Cloudflare Workers a database connection cannot be reused across requests
+ * (the socket from a previous request is dead by the next invocation). Reusing
+ * a global client/pool causes the intermittent "first request fails, retry
+ * works" behaviour. So we create a fresh client per request.
+ *
+ * `cache` memoizes the client within a single request, and `maxUses: 1` ensures
+ * pooled connections are never reused across requests.
  */
-const globalForPrisma = globalThis as unknown as {
-  prismaPool: Pool | undefined;
-  prisma: PrismaClient | undefined;
-};
-
-const pool =
-  globalForPrisma.prismaPool ??
-  new Pool({
+const getClient = cache(() => {
+  const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
-
-    max: 5,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 10_000,
-    maxLifetimeSeconds: 60,
-    maxUses: 100,
+    maxUses: 1,
   });
 
-export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({ adapter: new PrismaPg(pool) });
+  return new PrismaClient({ adapter });
+});
 
-globalForPrisma.prismaPool = pool;
-globalForPrisma.prisma = prisma;
+// Exposed as `prisma` so existing call sites (`import { prisma }`) keep working,
+// while every property access resolves to the current request's client.
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getClient();
+    const value = Reflect.get(client, prop, receiver);
+
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
