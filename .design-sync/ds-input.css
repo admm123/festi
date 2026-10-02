@@ -1,0 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+@import "../src/app/globals.css";
+
+:root {
+  --font-raleway: "Raleway", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}

@@ -1,0 +1,60 @@
+{
+  "pkg": "festi",
+  "globalName": "FestiUI",
+  "shape": "package",
+  "projectId": "90d983d0-9610-4d3f-a7c1-d2cdcaf36a89",
+  "srcDir": "src/components/ui",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".design-sync/compiled.css",
+  "extraEntries": [
+    "./.design-sync/theme-root.tsx"
+  ],
+  "provider": {
+    "component": "FestiThemeRoot"
+  },
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "540x440"
+    },
+    "AlertDialog": {
+      "cardMode": "single",
+      "viewport": "540x400"
+    },
+    "Sheet": {
+      "cardMode": "single",
+      "viewport": "780x460"
+    },
+    "Popover": {
+      "cardMode": "single",
+      "viewport": "400x340"
+    },
+    "Tooltip": {
+      "cardMode": "single",
+      "viewport": "340x200"
+    },
+    "DropdownMenu": {
+      "cardMode": "single",
+      "viewport": "400x360"
+    },
+    "Select": {
+      "cardMode": "single",
+      "primaryStory": "Open",
+      "viewport": "400x440"
+    },
+    "Sidebar": {
+      "cardMode": "single",
+      "viewport": "680x380"
+    },
+    "Table": {
+      "cardMode": "column"
+    },
+    "Card": {
+      "cardMode": "column"
+    },
+    "InputGroup": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
