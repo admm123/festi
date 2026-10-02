@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres:/data/postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     networks:
       festi_network:
         aliases:
@@ -34,7 +34,7 @@ services:
       - pgadmin:/var/lib/pgadmin
       - ./dev/pga_files:/home/pgadmin
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
